@@ -1,0 +1,1174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>INSPEKTA — See What Humans Miss. Fix What Machines Can't.</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --white: #f8f9fa;
+  --blue: #1e40af;
+  --blue-light: #3b82f6;
+  --blue-dark: #1e3a8a;
+  --gray: #374151;
+  --gray-light: #6b7280;
+  --gray-dark: #1f2937;
+  --accent: #60a5fa;
+  --success: #10b981;
+  --warn: #f59e0b;
+}
+
+html, body {
+  width: 100%; height: 100%;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: #000;
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ── Progress Bar ── */
+#progress-bar {
+  position: fixed; top: 0; left: 0; height: 3px;
+  background: linear-gradient(90deg, var(--blue), var(--accent));
+  z-index: 1000; transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ── Slide Container ── */
+#deck {
+  width: 100vw; height: 100vh;
+  position: relative;
+}
+
+.slide {
+  position: absolute; top: 0; left: 0;
+  width: 100%; height: 100%;
+  display: flex; flex-direction: column;
+  justify-content: center; align-items: center;
+  padding: 60px 80px;
+  opacity: 0;
+  transform: translateX(60px);
+  transition: opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1),
+              transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.slide.active {
+  opacity: 1;
+  transform: translateX(0);
+  pointer-events: auto;
+}
+
+.slide.exit-left {
+  opacity: 0;
+  transform: translateX(-60px);
+}
+
+/* ── Slide Number ── */
+.slide-number {
+  position: fixed; bottom: 30px; right: 40px;
+  font-size: 13px; font-weight: 500;
+  color: rgba(255,255,255,0.3);
+  z-index: 100;
+  letter-spacing: 2px;
+}
+
+/* ── Typography ── */
+.slide h1 {
+  font-weight: 800; letter-spacing: -2px;
+  line-height: 1.05;
+}
+.slide h2 {
+  font-weight: 700; letter-spacing: -1.5px;
+  line-height: 1.1;
+}
+.slide h3 {
+  font-weight: 600; letter-spacing: -0.5px;
+}
+.slide p, .slide li {
+  font-weight: 300; line-height: 1.6;
+}
+.slide .label {
+  font-size: 12px; font-weight: 600;
+  letter-spacing: 3px; text-transform: uppercase;
+}
+
+/* ── Dark Slide ── */
+.slide.dark {
+  background: linear-gradient(135deg, #0a0f1a 0%, #111827 50%, #0f172a 100%);
+  color: var(--white);
+}
+
+/* ── White Slide ── */
+.slide.light {
+  background: var(--white);
+  color: var(--gray-dark);
+}
+
+/* ── Blue Slide ── */
+.slide.blue {
+  background: linear-gradient(135deg, var(--blue-dark) 0%, var(--blue) 100%);
+  color: var(--white);
+}
+
+/* ── Animated Counter ── */
+.counter {
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Speaker Notes ── */
+#notes-panel {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  background: rgba(0,0,0,0.95);
+  color: #ccc; padding: 20px 40px;
+  font-size: 14px; line-height: 1.6;
+  transform: translateY(100%);
+  transition: transform 0.3s ease;
+  z-index: 999;
+  max-height: 30vh; overflow-y: auto;
+  border-top: 1px solid rgba(255,255,255,0.1);
+}
+#notes-panel.visible { transform: translateY(0); }
+#notes-panel .notes-title {
+  font-size: 10px; font-weight: 700;
+  letter-spacing: 3px; text-transform: uppercase;
+  color: var(--accent); margin-bottom: 8px;
+}
+
+/* ── Fade-in animation ── */
+.fade-up {
+  opacity: 0; transform: translateY(30px);
+  transition: opacity 0.7s ease, transform 0.7s ease;
+}
+.slide.active .fade-up { opacity: 1; transform: translateY(0); }
+.slide.active .fade-up.d1 { transition-delay: 0.15s; }
+.slide.active .fade-up.d2 { transition-delay: 0.3s; }
+.slide.active .fade-up.d3 { transition-delay: 0.45s; }
+.slide.active .fade-up.d4 { transition-delay: 0.6s; }
+.slide.active .fade-up.d5 { transition-delay: 0.75s; }
+
+/* ── Scanner Visual ── */
+.scanner-container {
+  position: relative;
+  width: 400px; height: 300px;
+  border: 2px solid rgba(30, 64, 175, 0.3);
+  border-radius: 12px;
+  overflow: hidden;
+  background: rgba(0,0,0,0.4);
+}
+.scanner-line {
+  position: absolute; top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--accent), var(--blue-light), var(--accent), transparent);
+  box-shadow: 0 0 20px var(--accent), 0 0 60px rgba(96,165,250,0.3);
+  animation: scan 2.5s ease-in-out infinite;
+}
+@keyframes scan {
+  0%, 100% { top: 0; }
+  50% { top: calc(100% - 2px); }
+}
+.defect-dot {
+  position: absolute;
+  width: 12px; height: 12px;
+  border: 2px solid #ef4444;
+  border-radius: 50%;
+  animation: defectPulse 2s ease-in-out infinite;
+}
+.defect-dot::after {
+  content: ''; position: absolute;
+  top: -6px; left: -6px; right: -6px; bottom: -6px;
+  border: 1px solid rgba(239,68,68,0.4);
+  border-radius: 50%;
+  animation: defectRing 2s ease-in-out infinite;
+}
+@keyframes defectPulse {
+  0%, 100% { opacity: 0.6; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1.2); }
+}
+@keyframes defectRing {
+  0%, 100% { transform: scale(1); opacity: 0; }
+  50% { transform: scale(1.8); opacity: 0.6; }
+}
+.grid-overlay {
+  position: absolute; inset: 0;
+  background-image:
+    linear-gradient(rgba(30,64,175,0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(30,64,175,0.08) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+.scanner-label {
+  position: absolute; bottom: 10px; right: 12px;
+  font-size: 10px; font-weight: 600;
+  letter-spacing: 2px; color: var(--accent);
+  text-transform: uppercase;
+}
+.scanner-status {
+  position: absolute; top: 10px; left: 12px;
+  display: flex; align-items: center; gap: 6px;
+  font-size: 10px; font-weight: 600; color: var(--success);
+  letter-spacing: 1px; text-transform: uppercase;
+}
+.scanner-status .dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--success);
+  animation: blink 1.5s ease-in-out infinite;
+}
+@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+/* ── TAM/SAM/SOM Circles ── */
+.market-circles {
+  position: relative;
+  width: 420px; height: 420px;
+  display: flex; align-items: center; justify-content: center;
+}
+.market-circle {
+  position: absolute;
+  border-radius: 50%;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  transition: transform 0.3s ease;
+}
+.market-circle:hover { transform: scale(1.04); }
+.market-circle.tam {
+  width: 400px; height: 400px;
+  background: rgba(30,64,175,0.12);
+  border: 2px solid rgba(30,64,175,0.3);
+}
+.market-circle.sam {
+  width: 270px; height: 270px;
+  background: rgba(59,130,246,0.15);
+  border: 2px solid rgba(59,130,246,0.4);
+}
+.market-circle.som {
+  width: 130px; height: 130px;
+  background: rgba(96,165,250,0.25);
+  border: 2px solid var(--accent);
+  box-shadow: 0 0 30px rgba(96,165,250,0.15);
+}
+.market-circle .circle-value {
+  font-size: 22px; font-weight: 800; color: var(--white);
+}
+.market-circle .circle-label {
+  font-size: 10px; font-weight: 700;
+  letter-spacing: 3px; text-transform: uppercase;
+  color: var(--accent); margin-top: 4px;
+}
+.market-circle.tam .circle-value { font-size: 20px; }
+.market-circle.tam .circle-label { margin-top: 100px; }
+.market-circle.sam .circle-value { font-size: 19px; }
+
+/* ── ROI Bar ── */
+.roi-bar-container {
+  display: flex; align-items: flex-end; gap: 40px;
+  height: 220px;
+}
+.roi-bar-item {
+  display: flex; flex-direction: column;
+  align-items: center; gap: 12px;
+}
+.roi-bar {
+  width: 80px; border-radius: 8px 8px 0 0;
+  transition: height 1.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.roi-bar-label {
+  font-size: 12px; font-weight: 600;
+  color: var(--gray-light); letter-spacing: 1px;
+  text-transform: uppercase;
+}
+.roi-bar-value {
+  font-size: 18px; font-weight: 800; color: var(--white);
+}
+
+/* ── Pricing Cards ── */
+.pricing-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  gap: 24px; max-width: 900px;
+}
+.pricing-card {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 16px; padding: 32px 28px;
+  text-align: center;
+  transition: transform 0.3s ease, border-color 0.3s ease;
+}
+.pricing-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(96,165,250,0.3);
+}
+.pricing-card.featured {
+  border-color: var(--accent);
+  background: rgba(30,64,175,0.08);
+  box-shadow: 0 0 40px rgba(30,64,175,0.1);
+}
+.pricing-card .tier-name {
+  font-size: 11px; font-weight: 700;
+  letter-spacing: 3px; text-transform: uppercase;
+  color: var(--accent); margin-bottom: 16px;
+}
+.pricing-card .tier-price {
+  font-size: 36px; font-weight: 800;
+  color: var(--white); line-height: 1;
+}
+.pricing-card .tier-unit {
+  font-size: 12px; color: var(--gray-light);
+  margin-top: 4px; margin-bottom: 20px;
+}
+.pricing-card .tier-features {
+  list-style: none; text-align: left;
+}
+.pricing-card .tier-features li {
+  font-size: 13px; color: rgba(255,255,255,0.7);
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+.pricing-card .tier-features li::before {
+  content: ''; display: inline-block;
+  width: 4px; height: 4px; border-radius: 50%;
+  background: var(--accent); margin-right: 10px;
+  vertical-align: middle;
+}
+
+/* ── Traction Stats ── */
+.traction-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  gap: 32px; max-width: 900px;
+}
+.traction-item {
+  text-align: center; padding: 24px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 16px;
+}
+.traction-value {
+  font-size: 42px; font-weight: 900;
+  color: var(--white); line-height: 1;
+  margin-bottom: 8px;
+}
+.traction-label {
+  font-size: 11px; font-weight: 600;
+  letter-spacing: 2px; text-transform: uppercase;
+  color: var(--gray-light);
+}
+
+/* ── Fund Allocation ── */
+.fund-bars {
+  width: 100%; max-width: 600px;
+  display: flex; flex-direction: column; gap: 16px;
+}
+.fund-row {
+  display: flex; align-items: center; gap: 16px;
+}
+.fund-label {
+  width: 120px; font-size: 13px; font-weight: 600;
+  color: rgba(255,255,255,0.7); text-align: right;
+}
+.fund-track {
+  flex: 1; height: 32px;
+  background: rgba(255,255,255,0.04);
+  border-radius: 8px; overflow: hidden;
+  position: relative;
+}
+.fund-fill {
+  height: 100%; border-radius: 8px;
+  display: flex; align-items: center;
+  padding-left: 12px;
+  font-size: 12px; font-weight: 700;
+  color: var(--white);
+  transition: width 1.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ── Competitive Table ── */
+.comp-table {
+  border-collapse: separate;
+  border-spacing: 0;
+  width: 100%; max-width: 850px;
+  font-size: 13px;
+}
+.comp-table th {
+  padding: 12px 16px;
+  font-weight: 700; font-size: 11px;
+  letter-spacing: 2px; text-transform: uppercase;
+  color: var(--accent);
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+  text-align: left;
+}
+.comp-table td {
+  padding: 10px 16px;
+  color: rgba(255,255,255,0.6);
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+.comp-table .inspekta-col {
+  color: var(--white); font-weight: 600;
+  background: rgba(30,64,175,0.08);
+}
+.comp-table tr:first-child .inspekta-col {
+  border-radius: 8px 8px 0 0;
+}
+.comp-table tr:last-child .inspekta-col {
+  border-radius: 0 0 8px 8px;
+}
+.check { color: var(--success); }
+.cross { color: #ef4444; }
+
+/* ── Architecture Flow ── */
+.arch-flow {
+  display: flex; align-items: center; gap: 0;
+  max-width: 900px;
+}
+.arch-node {
+  display: flex; flex-direction: column;
+  align-items: center; gap: 8px;
+  padding: 20px 24px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 16px;
+  min-width: 150px;
+}
+.arch-node .node-icon {
+  font-size: 28px; margin-bottom: 4px;
+}
+.arch-node .node-title {
+  font-size: 13px; font-weight: 700;
+  color: var(--white); text-align: center;
+}
+.arch-node .node-detail {
+  font-size: 10px; color: var(--gray-light);
+  text-align: center; line-height: 1.4;
+}
+.arch-arrow {
+  font-size: 20px; color: var(--accent);
+  padding: 0 8px; flex-shrink: 0;
+}
+
+/* ── Background Glow ── */
+.bg-glow {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(120px);
+  pointer-events: none;
+}
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  .slide { padding: 40px 30px; }
+  .slide h1 { font-size: 32px !important; }
+  .slide h2 { font-size: 26px !important; }
+  .pricing-grid { grid-template-columns: 1fr; max-width: 300px; }
+  .traction-grid { grid-template-columns: repeat(2, 1fr); gap: 16px; }
+  .market-circles { transform: scale(0.65); }
+  .arch-flow { flex-wrap: wrap; justify-content: center; gap: 12px; }
+  .arch-arrow { display: none; }
+  .scanner-container { width: 280px; height: 200px; }
+  .comp-table { font-size: 10px; }
+  .comp-table th, .comp-table td { padding: 6px 8px; }
+  .roi-bar-container { gap: 20px; }
+  .roi-bar { width: 50px; }
+}
+</style>
+</head>
+<body>
+
+<div id="progress-bar"></div>
+<div class="slide-number" id="slide-number"></div>
+
+<!-- ═══════════════ SLIDE 1: THE OPEN ═══════════════ -->
+<div id="deck">
+<div class="slide dark active" data-notes="Open with silence. Let the quote land. This is the Steve Jobs 'one more thing' energy — but at the beginning.">
+  <div class="bg-glow" style="width:600px;height:600px;background:rgba(30,64,175,0.06);top:-100px;right:-200px;"></div>
+  <div class="fade-up" style="text-align:center;">
+    <p style="font-size:24px;font-weight:300;color:rgba(255,255,255,0.5);max-width:700px;line-height:1.7;margin-bottom:60px;">
+      "Every <span style="color:var(--accent);font-weight:600;">0.8 seconds</span>, a defective product rolls off a manufacturing line somewhere in the world."
+    </p>
+  </div>
+  <div class="fade-up d1" style="text-align:center;">
+    <p style="font-size:18px;font-weight:300;color:rgba(255,255,255,0.35);margin-bottom:80px;">
+      Most of them... nobody catches.
+    </p>
+  </div>
+  <div class="fade-up d2" style="text-align:center;">
+    <h1 style="font-size:72px;color:var(--white);margin-bottom:16px;">INSPEKTA</h1>
+    <p style="font-size:16px;font-weight:400;letter-spacing:4px;color:var(--accent);text-transform:uppercase;">
+      See What Humans Miss. Fix What Machines Can't.
+    </p>
+  </div>
+  <div class="fade-up d3" style="position:absolute;bottom:40px;left:0;right:0;text-align:center;">
+    <p style="font-size:11px;font-weight:500;letter-spacing:3px;color:rgba(255,255,255,0.2);text-transform:uppercase;">MunichTech EXPO AI Innovation Hackathon 2026</p>
+  </div>
+</div>
+
+<!-- ═══════════════ SLIDE 2: THE PROBLEM ═══════════════ -->
+<div class="slide dark" data-notes="Pause after $3.1 Trillion. Let the number breathe. Then break it down. The key stat: human inspection catches only 80%. One in five slips through.">
+  <div class="bg-glow" style="width:500px;height:500px;background:rgba(239,68,68,0.04);bottom:-100px;left:-100px;"></div>
+  <div class="fade-up" style="text-align:center;">
+    <p class="label" style="color:var(--accent);margin-bottom:20px;">The Problem</p>
+    <h1 style="font-size:96px;color:var(--white);">
+      $<span class="counter" data-target="3.1" data-decimals="1">0</span> Trillion
+    </h1>
+    <p style="font-size:18px;font-weight:300;color:rgba(255,255,255,0.5);margin-top:12px;">
+      Lost to manufacturing defects. Every single year.
+    </p>
+  </div>
+  <div class="fade-up d1" style="display:flex;gap:48px;margin-top:60px;">
+    <div style="text-align:center;">
+      <p style="font-size:36px;font-weight:800;color:var(--white);">$2.1T</p>
+      <p style="font-size:12px;color:var(--gray-light);margin-top:6px;max-width:140px;">Scrap, rework &<br>warranty claims</p>
+    </div>
+    <div style="text-align:center;">
+      <p style="font-size:36px;font-weight:800;color:var(--white);">$600B</p>
+      <p style="font-size:12px;color:var(--gray-light);margin-top:6px;max-width:140px;">Unplanned<br>downtime</p>
+    </div>
+    <div style="text-align:center;">
+      <p style="font-size:36px;font-weight:800;color:var(--white);">$400B</p>
+      <p style="font-size:12px;color:var(--gray-light);margin-top:6px;max-width:140px;">Recalls & brand<br>damage</p>
+    </div>
+  </div>
+  <div class="fade-up d2" style="margin-top:50px;text-align:center;">
+    <p style="font-size:22px;font-weight:600;color:#ef4444;">
+      Human inspection catches only 80% of defects.
+    </p>
+    <p style="font-size:15px;font-weight:300;color:rgba(255,255,255,0.4);margin-top:8px;">
+      One in five slips through. Every day. Every shift. Every line.
+    </p>
+  </div>
+</div>
+
+<!-- ═══════════════ SLIDE 3: WHY NOW ═══════════════ -->
+<div class="slide dark" data-notes="Three converging forces. The technology matured, the market is desperate post-pandemic, and labor shortages make AI a necessity not a luxury.">
+  <div class="bg-glow" style="width:500px;height:500px;background:rgba(30,64,175,0.06);top:-150px;left:50%;transform:translateX(-50%);"></div>
+  <div class="fade-up" style="text-align:center;margin-bottom:50px;">
+    <p class="label" style="color:var(--accent);margin-bottom:20px;">Why Now</p>
+    <h2 style="font-size:48px;color:var(--white);">Three forces converged.</h2>
+  </div>
+  <div style="display:flex;gap:40px;max-width:950px;">
+    <div class="fade-up d1" style="flex:1;padding:32px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:16px;">
+      <div style="width:48px;height:48px;border-radius:12px;background:rgba(30,64,175,0.15);display:flex;align-items:center;justify-content:center;margin-bottom:20px;">
+        <svg width="24" height="24" fill="none" stroke="var(--accent)" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M9 9h6M9 13h4"/></svg>
+      </div>
+      <h3 style="font-size:18px;color:var(--white);margin-bottom:10px;">Edge AI Maturity</h3>
+      <p style="font-size:14px;color:rgba(255,255,255,0.5);">275 TOPS at $399. Real-time vision at factory scale is finally economical.</p>
+    </div>
+    <div class="fade-up d2" style="flex:1;padding:32px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:16px;">
+      <div style="width:48px;height:48px;border-radius:12px;background:rgba(30,64,175,0.15);display:flex;align-items:center;justify-content:center;margin-bottom:20px;">
+        <svg width="24" height="24" fill="none" stroke="var(--accent)" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
+      </div>
+      <h3 style="font-size:18px;color:var(--white);margin-bottom:10px;">Foundation Models</h3>
+      <p style="font-size:14px;color:rgba(255,255,255,0.5);">Pretrained CNNs and transfer learning generalize across defect types with just 50 sample images.</p>
+    </div>
+    <div class="fade-up d3" style="flex:1;padding:32px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:16px;">
+      <div style="width:48px;height:48px;border-radius:12px;background:rgba(30,64,175,0.15);display:flex;align-items:center;justify-content:center;margin-bottom:20px;">
+        <svg width="24" height="24" fill="none" stroke="var(--accent)" stroke-width="2"><path d="M3 3h18v18H3z"/><path d="M3 15l6-6 4 4 8-8"/></svg>
+      </div>
+      <h3 style="font-size:18px;color:var(--white);margin-bottom:10px;">Market Desperation</h3>
+      <p style="font-size:14px;color:rgba(255,255,255,0.5);">Post-pandemic supply chains and 2.1M worker shortfall make quality non-negotiable.</p>
+    </div>
+  </div>
+  <div class="fade-up d4" style="margin-top:40px;text-align:center;">
+    <p style="font-size:14px;color:rgba(255,255,255,0.3);">AI inspection penetration today: <span style="color:var(--accent);font-weight:700;">&lt; 8%</span> of manufacturing plants</p>
+  </div>
+</div>
+
+<!-- ═══════════════ SLIDE 4: THE SOLUTION ═══════════════ -->
+<div class="slide dark" data-notes="Keep it dead simple. Three verbs: Detect, Classify, Predict. Then show the scanner animation. 'One camera. One edge device. One line of sight to perfection.'">
+  <div class="fade-up" style="text-align:center;margin-bottom:40px;">
+    <p class="label" style="color:var(--accent);margin-bottom:20px;">The Solution</p>
+    <h2 style="font-size:44px;color:var(--white);max-width:700px;">One camera. One edge device.<br>One line of sight to perfection.</h2>
+  </div>
+  <div style="display:flex;gap:60px;align-items:center;">
+    <div class="fade-up d1">
+      <div class="scanner-container">
+        <div class="grid-overlay"></div>
+        <div class="scanner-line"></div>
+        <div class="defect-dot" style="top:35%;left:25%;"></div>
+        <div class="defect-dot" style="top:60%;left:65%;animation-delay:0.7s;"></div>
+        <div class="defect-dot" style="top:22%;left:72%;animation-delay:1.3s;"></div>
+        <div class="scanner-status"><span class="dot"></span> Live Detection</div>
+        <div class="scanner-label">Inspekta Edge v1.0</div>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:28px;">
+      <div class="fade-up d1" style="display:flex;align-items:flex-start;gap:16px;">
+        <div style="min-width:40px;height:40px;border-radius:10px;background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.3);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;color:var(--success);">1</div>
+        <div>
+          <h3 style="font-size:18px;color:var(--white);margin-bottom:4px;">Detect</h3>
+          <p style="font-size:13px;color:rgba(255,255,255,0.5);max-width:300px;">99.7% accuracy. Surface defects, dimensional anomalies, assembly errors. Real-time.</p>
+        </div>
+      </div>
+      <div class="fade-up d2" style="display:flex;align-items:flex-start;gap:16px;">
+        <div style="min-width:40px;height:40px;border-radius:10px;background:rgba(59,130,246,0.12);border:1px solid rgba(59,130,246,0.3);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;color:var(--blue-light);">2</div>
+        <div>
+          <h3 style="font-size:18px;color:var(--white);margin-bottom:4px;">Classify</h3>
+          <p style="font-size:13px;color:rgba(255,255,255,0.5);max-width:300px;">Type, severity, and probable root cause. Instantly categorized.</p>
+        </div>
+      </div>
+      <div class="fade-up d3" style="display:flex;align-items:flex-start;gap:16px;">
+        <div style="min-width:40px;height:40px;border-radius:10px;background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.3);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;color:var(--warn);">3</div>
+        <div>
+          <h3 style="font-size:18px;color:var(--white);margin-bottom:4px;">Predict</h3>
+          <p style="font-size:13px;color:rgba(255,255,255,0.5);max-width:300px;">Flags process drift before defects happen. Prevention over detection.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ SLIDE 5: THE TECHNOLOGY ═══════════════ -->
+<div class="slide dark" data-notes="Walk through the architecture left to right. Emphasize: no cloud, sub-50ms, proprietary synthetic data pipeline as moat. 50 images to production-ready.">
+  <div class="bg-glow" style="width:600px;height:300px;background:rgba(30,64,175,0.06);bottom:0;left:50%;transform:translateX(-50%);"></div>
+  <div class="fade-up" style="text-align:center;margin-bottom:50px;">
+    <p class="label" style="color:var(--accent);margin-bottom:20px;">Technology</p>
+    <h2 style="font-size:44px;color:var(--white);">How It Works</h2>
+  </div>
+  <div class="fade-up d1 arch-flow">
+    <div class="arch-node">
+      <div class="node-icon"><svg width="32" height="32" fill="none" stroke="var(--accent)" stroke-width="1.5"><circle cx="16" cy="12" r="6"/><path d="M6 26c0-5.5 4.5-10 10-10s10 4.5 10 10"/><rect x="8" y="3" width="16" height="18" rx="2"/></svg></div>
+      <div class="node-title">Camera Feed</div>
+      <div class="node-detail">30+ FPS<br>4K Resolution</div>
+    </div>
+    <div class="arch-arrow">&rarr;</div>
+    <div class="arch-node" style="border-color:rgba(96,165,250,0.3);">
+      <div class="node-icon"><svg width="32" height="32" fill="none" stroke="var(--accent)" stroke-width="1.5"><rect x="2" y="6" width="28" height="20" rx="3"/><path d="M10 14h4M18 14h4M10 18h12"/></svg></div>
+      <div class="node-title">Edge AI Module</div>
+      <div class="node-detail">NVIDIA Jetson<br>&lt; 50ms inference</div>
+    </div>
+    <div class="arch-arrow">&rarr;</div>
+    <div class="arch-node" style="border-color:rgba(16,185,129,0.3);">
+      <div class="node-icon"><svg width="32" height="32" fill="none" stroke="#10b981" stroke-width="1.5"><path d="M16 2l12 7v14l-12 7L4 23V9z"/><circle cx="16" cy="16" r="4"/></svg></div>
+      <div class="node-title">Detection Engine</div>
+      <div class="node-detail">ResNet + FPN CNN<br>99.7% accuracy</div>
+    </div>
+    <div class="arch-arrow">&rarr;</div>
+    <div class="arch-node" style="border-color:rgba(245,158,11,0.3);">
+      <div class="node-icon"><svg width="32" height="32" fill="none" stroke="#f59e0b" stroke-width="1.5"><rect x="3" y="3" width="26" height="26" rx="4"/><path d="M8 20l5-5 4 3 7-8"/></svg></div>
+      <div class="node-title">Dashboard</div>
+      <div class="node-detail">Real-time alerts<br>Root cause analysis</div>
+    </div>
+  </div>
+  <div class="fade-up d2" style="margin-top:48px;text-align:center;max-width:700px;">
+    <p style="font-size:15px;font-weight:500;color:var(--accent);margin-bottom:8px;">The Moat</p>
+    <p style="font-size:14px;color:rgba(255,255,255,0.5);">
+      Proprietary synthetic defect generation creates training data <span style="color:var(--white);font-weight:600;">40x faster</span> than manual labeling.
+      New product types onboarded in <span style="color:var(--white);font-weight:600;">hours, not months</span>.
+      50 images to production-ready.
+    </p>
+  </div>
+</div>
+
+<!-- ═══════════════ SLIDE 6: THE MARKET ═══════════════ -->
+<div class="slide dark" data-notes="TAM: $15B global. SAM: $5.2B visual inspection in target verticals. SOM: $180M DACH beachhead. Why DACH: highest manufacturing density, Mittelstand, quality DNA.">
+  <div class="fade-up" style="text-align:center;margin-bottom:20px;">
+    <p class="label" style="color:var(--accent);margin-bottom:20px;">Market Opportunity</p>
+    <h2 style="font-size:44px;color:var(--white);">$15 Billion by 2028</h2>
+  </div>
+  <div style="display:flex;align-items:center;gap:80px;">
+    <div class="fade-up d1">
+      <div class="market-circles">
+        <div class="market-circle tam">
+          <div class="circle-label" style="margin-top:140px;">TAM</div>
+          <div class="circle-value">$15B</div>
+          <div style="font-size:9px;color:rgba(255,255,255,0.4);max-width:120px;text-align:center;margin-top:4px;">Global industrial AI quality inspection</div>
+        </div>
+        <div class="market-circle sam">
+          <div class="circle-label">SAM</div>
+          <div class="circle-value">$5.2B</div>
+          <div style="font-size:9px;color:rgba(255,255,255,0.4);max-width:100px;text-align:center;margin-top:4px;">Visual inspection automation</div>
+        </div>
+        <div class="market-circle som">
+          <div class="circle-label">SOM</div>
+          <div class="circle-value" style="font-size:18px;">$180M</div>
+        </div>
+      </div>
+    </div>
+    <div class="fade-up d2" style="max-width:340px;">
+      <p style="font-size:14px;font-weight:600;color:var(--accent);margin-bottom:16px;">Why DACH First</p>
+      <div style="display:flex;flex-direction:column;gap:16px;">
+        <div style="display:flex;align-items:flex-start;gap:12px;">
+          <div style="min-width:6px;height:6px;border-radius:50%;background:var(--accent);margin-top:7px;"></div>
+          <p style="font-size:14px;color:rgba(255,255,255,0.6);">Highest manufacturing density in Europe</p>
+        </div>
+        <div style="display:flex;align-items:flex-start;gap:12px;">
+          <div style="min-width:6px;height:6px;border-radius:50%;background:var(--accent);margin-top:7px;"></div>
+          <p style="font-size:14px;color:rgba(255,255,255,0.6);"><span style="color:var(--white);font-weight:500;">1,200+</span> mid-size manufacturers underserved</p>
+        </div>
+        <div style="display:flex;align-items:flex-start;gap:12px;">
+          <div style="min-width:6px;height:6px;border-radius:50%;background:var(--accent);margin-top:7px;"></div>
+          <p style="font-size:14px;color:rgba(255,255,255,0.6);">Quality culture is in the DNA — they buy <em>how</em>, not <em>why</em></p>
+        </div>
+      </div>
+      <div style="margin-top:28px;padding:16px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:12px;">
+        <p style="font-size:11px;font-weight:600;letter-spacing:2px;color:var(--gray-light);text-transform:uppercase;margin-bottom:6px;">Adjacent Markets</p>
+        <p style="font-size:13px;color:rgba(255,255,255,0.5);">Predictive maintenance ($12B) + Manufacturing analytics ($20B)</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ SLIDE 7: BUSINESS MODEL ═══════════════ -->
+<div class="slide dark" data-notes="Per-camera SaaS. Three tiers. 82% gross margin. Land with one line, expand facility-wide. Customer payback under 4 months. Every camera is a new subscription.">
+  <div class="fade-up" style="text-align:center;margin-bottom:40px;">
+    <p class="label" style="color:var(--accent);margin-bottom:20px;">Business Model</p>
+    <h2 style="font-size:40px;color:var(--white);">Per-Camera SaaS. 82% Gross Margin.</h2>
+  </div>
+  <div class="fade-up d1 pricing-grid">
+    <div class="pricing-card">
+      <div class="tier-name">Inspect</div>
+      <div class="tier-price">&euro;890</div>
+      <div class="tier-unit">/camera/month</div>
+      <ul class="tier-features">
+        <li>Real-time defect detection</li>
+        <li>Defect classification</li>
+        <li>Basic dashboard</li>
+      </ul>
+    </div>
+    <div class="pricing-card featured">
+      <div class="tier-name">Insight</div>
+      <div class="tier-price">&euro;1,490</div>
+      <div class="tier-unit">/camera/month</div>
+      <ul class="tier-features">
+        <li>Everything in Inspect</li>
+        <li>Root cause analysis</li>
+        <li>Predictive alerts</li>
+      </ul>
+    </div>
+    <div class="pricing-card">
+      <div class="tier-name">Integrate</div>
+      <div class="tier-price">&euro;2,290</div>
+      <div class="tier-unit">/camera/month</div>
+      <ul class="tier-features">
+        <li>Everything in Insight</li>
+        <li>MES/ERP integration</li>
+        <li>Custom models</li>
+      </ul>
+    </div>
+  </div>
+  <div class="fade-up d2" style="display:flex;gap:48px;margin-top:36px;">
+    <div style="text-align:center;">
+      <p style="font-size:28px;font-weight:800;color:var(--white);">&lt; 4 mo</p>
+      <p style="font-size:11px;color:var(--gray-light);letter-spacing:1px;text-transform:uppercase;margin-top:4px;">Customer Payback</p>
+    </div>
+    <div style="text-align:center;">
+      <p style="font-size:28px;font-weight:800;color:var(--white);">12-24</p>
+      <p style="font-size:11px;color:var(--gray-light);letter-spacing:1px;text-transform:uppercase;margin-top:4px;">Cameras per Facility</p>
+    </div>
+    <div style="text-align:center;">
+      <p style="font-size:28px;font-weight:800;color:var(--white);">140%</p>
+      <p style="font-size:11px;color:var(--gray-light);letter-spacing:1px;text-transform:uppercase;margin-top:4px;">Net Revenue Retention</p>
+    </div>
+    <div style="text-align:center;">
+      <p style="font-size:28px;font-weight:800;color:var(--white);">9.3x</p>
+      <p style="font-size:11px;color:var(--gray-light);letter-spacing:1px;text-transform:uppercase;margin-top:4px;">LTV : CAC</p>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ SLIDE 8: ROI + TRACTION ═══════════════ -->
+<div class="slide dark" data-notes="From zero to proof in 90 days. 3 pilot LOIs, 99.7% accuracy validated, 200ms inference, 2 provisional patents. Pipeline: 11 qualified leads.">
+  <div class="bg-glow" style="width:400px;height:400px;background:rgba(16,185,129,0.04);top:-100px;right:-100px;"></div>
+  <div class="fade-up" style="text-align:center;margin-bottom:40px;">
+    <p class="label" style="color:var(--accent);margin-bottom:20px;">Traction</p>
+    <h2 style="font-size:44px;color:var(--white);">Zero to Proof in 90 Days</h2>
+  </div>
+  <div class="fade-up d1 traction-grid">
+    <div class="traction-item">
+      <div class="traction-value counter" data-target="3" data-decimals="0">0</div>
+      <div class="traction-label">Pilot LOIs</div>
+    </div>
+    <div class="traction-item">
+      <div class="traction-value"><span class="counter" data-target="99.7" data-decimals="1">0</span>%</div>
+      <div class="traction-label">Detection Accuracy</div>
+    </div>
+    <div class="traction-item">
+      <div class="traction-value">&lt;<span class="counter" data-target="200" data-decimals="0">0</span>ms</div>
+      <div class="traction-label">Inference Time</div>
+    </div>
+    <div class="traction-item">
+      <div class="traction-value counter" data-target="11" data-decimals="0">0</div>
+      <div class="traction-label">Qualified Leads</div>
+    </div>
+  </div>
+  <div class="fade-up d2" style="margin-top:40px;display:flex;gap:60px;align-items:flex-end;">
+    <div>
+      <p style="font-size:13px;font-weight:600;color:var(--accent);margin-bottom:20px;">Customer ROI per Production Line</p>
+      <div class="roi-bar-container" id="roi-bars">
+        <div class="roi-bar-item">
+          <div class="roi-bar-value">$200K</div>
+          <div class="roi-bar" style="height:0;background:linear-gradient(180deg, var(--blue-light), var(--blue));" data-height="80"></div>
+          <div class="roi-bar-label">Inspekta<br>Cost</div>
+        </div>
+        <div class="roi-bar-item">
+          <div class="roi-bar-value">$500K-1M</div>
+          <div class="roi-bar" style="height:0;background:linear-gradient(180deg, var(--success), #059669);" data-height="200"></div>
+          <div class="roi-bar-label">Annual<br>Savings</div>
+        </div>
+      </div>
+    </div>
+    <div style="max-width:280px;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+        <div style="width:8px;height:8px;border-radius:50%;background:var(--success);"></div>
+        <p style="font-size:13px;color:rgba(255,255,255,0.6);">2 provisional patents filed</p>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+        <div style="width:8px;height:8px;border-radius:50%;background:var(--success);"></div>
+        <p style="font-size:13px;color:rgba(255,255,255,0.6);">Validated on MVTec AD & VisA benchmarks</p>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div style="width:8px;height:8px;border-radius:50%;background:var(--success);"></div>
+        <p style="font-size:13px;color:rgba(255,255,255,0.6);">Munich-based team of 4</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ SLIDE 9: COMPETITION ═══════════════ -->
+<div class="slide dark" data-notes="We win on speed (hours vs months), data efficiency (50 images vs thousands), edge-first (no cloud), and price. Network effects compound our advantage.">
+  <div class="fade-up" style="text-align:center;margin-bottom:40px;">
+    <p class="label" style="color:var(--accent);margin-bottom:20px;">Competitive Landscape</p>
+    <h2 style="font-size:40px;color:var(--white);">Why Not the Others?</h2>
+  </div>
+  <div class="fade-up d1">
+    <table class="comp-table">
+      <thead>
+        <tr>
+          <th></th>
+          <th class="inspekta-col">Inspekta</th>
+          <th>Legacy Vision</th>
+          <th>Cloud AI</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td style="font-weight:600;color:rgba(255,255,255,0.8);">Setup Time</td>
+          <td class="inspekta-col">Hours</td>
+          <td>Weeks-months</td>
+          <td>Weeks</td>
+        </tr>
+        <tr>
+          <td style="font-weight:600;color:rgba(255,255,255,0.8);">New Product Adapt</td>
+          <td class="inspekta-col">50 images</td>
+          <td>Full reprogram</td>
+          <td>1,000+ images</td>
+        </tr>
+        <tr>
+          <td style="font-weight:600;color:rgba(255,255,255,0.8);">Edge Inference</td>
+          <td class="inspekta-col"><span class="check">Yes (&lt;50ms)</span></td>
+          <td>Partial</td>
+          <td><span class="cross">Cloud-dependent</span></td>
+        </tr>
+        <tr>
+          <td style="font-weight:600;color:rgba(255,255,255,0.8);">Predictive</td>
+          <td class="inspekta-col"><span class="check">Yes</span></td>
+          <td><span class="cross">No</span></td>
+          <td>Limited</td>
+        </tr>
+        <tr>
+          <td style="font-weight:600;color:rgba(255,255,255,0.8);">Price /cam/mo</td>
+          <td class="inspekta-col">&euro;890+</td>
+          <td>&euro;2,000+ (capex)</td>
+          <td>&euro;1,500+</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="fade-up d2" style="margin-top:32px;text-align:center;max-width:650px;">
+    <p style="font-size:14px;color:rgba(255,255,255,0.5);">
+      <span style="color:var(--accent);font-weight:600;">Network effects:</span>
+      Every defect detected makes the model smarter. Every customer strengthens the foundation. Our advantage compounds.
+    </p>
+  </div>
+</div>
+
+<!-- ═══════════════ SLIDE 10: FINANCIAL PROJECTIONS ═══════════════ -->
+<div class="slide dark" data-notes="Show the 3-year ramp. Year 1: $600K, Year 2: $4.5M, Year 3: $15M. Approaching break-even by Year 3. Profitable by Year 4.">
+  <div class="bg-glow" style="width:500px;height:500px;background:rgba(30,64,175,0.05);bottom:-200px;right:-100px;"></div>
+  <div class="fade-up" style="text-align:center;margin-bottom:40px;">
+    <p class="label" style="color:var(--accent);margin-bottom:20px;">Financial Projections</p>
+    <h2 style="font-size:40px;color:var(--white);">Path to $15M ARR</h2>
+  </div>
+  <div class="fade-up d1" style="display:flex;gap:32px;max-width:900px;">
+    <div style="flex:1;padding:28px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:16px;">
+      <p style="font-size:11px;font-weight:700;letter-spacing:2px;color:var(--gray-light);text-transform:uppercase;margin-bottom:16px;">Year 1</p>
+      <p style="font-size:36px;font-weight:800;color:var(--white);margin-bottom:12px;">$600K</p>
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        <p style="font-size:12px;color:rgba(255,255,255,0.4);">3 customers</p>
+        <p style="font-size:12px;color:rgba(255,255,255,0.4);">3 production lines</p>
+        <p style="font-size:12px;color:rgba(255,255,255,0.4);">1 vertical (auto)</p>
+      </div>
+    </div>
+    <div style="flex:1;padding:28px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:16px;">
+      <p style="font-size:11px;font-weight:700;letter-spacing:2px;color:var(--gray-light);text-transform:uppercase;margin-bottom:16px;">Year 2</p>
+      <p style="font-size:36px;font-weight:800;color:var(--white);margin-bottom:12px;">$4.5M</p>
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        <p style="font-size:12px;color:rgba(255,255,255,0.4);">15 customers</p>
+        <p style="font-size:12px;color:rgba(255,255,255,0.4);">20 production lines</p>
+        <p style="font-size:12px;color:rgba(255,255,255,0.4);">2 verticals</p>
+      </div>
+    </div>
+    <div style="flex:1;padding:28px;background:rgba(30,64,175,0.08);border:1px solid rgba(96,165,250,0.2);border-radius:16px;">
+      <p style="font-size:11px;font-weight:700;letter-spacing:2px;color:var(--accent);text-transform:uppercase;margin-bottom:16px;">Year 3</p>
+      <p style="font-size:36px;font-weight:800;color:var(--white);margin-bottom:12px;">$15M</p>
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        <p style="font-size:12px;color:rgba(255,255,255,0.5);">50 customers</p>
+        <p style="font-size:12px;color:rgba(255,255,255,0.5);">80 production lines</p>
+        <p style="font-size:12px;color:rgba(255,255,255,0.5);">4 verticals</p>
+      </div>
+    </div>
+  </div>
+  <div class="fade-up d2" style="display:flex;gap:48px;margin-top:36px;">
+    <div style="text-align:center;">
+      <p style="font-size:24px;font-weight:800;color:var(--white);">80%</p>
+      <p style="font-size:10px;color:var(--gray-light);letter-spacing:1px;text-transform:uppercase;margin-top:4px;">Gross Margin (Yr3)</p>
+    </div>
+    <div style="text-align:center;">
+      <p style="font-size:24px;font-weight:800;color:var(--white);">3M</p>
+      <p style="font-size:10px;color:var(--gray-light);letter-spacing:1px;text-transform:uppercase;margin-top:4px;">Defects Caught / Mo</p>
+    </div>
+    <div style="text-align:center;">
+      <p style="font-size:24px;font-weight:800;color:var(--white);">145%</p>
+      <p style="font-size:10px;color:var(--gray-light);letter-spacing:1px;text-transform:uppercase;margin-top:4px;">Net Rev. Retention</p>
+    </div>
+    <div style="text-align:center;">
+      <p style="font-size:24px;font-weight:800;color:var(--white);">55</p>
+      <p style="font-size:10px;color:var(--gray-light);letter-spacing:1px;text-transform:uppercase;margin-top:4px;">Team Size (Yr3)</p>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ SLIDE 11: THE ASK ═══════════════ -->
+<div class="slide dark" data-notes="EUR 2.5M seed. 48% R&D, 30% GTM, 14% Ops, 8% reserve. 12-month milestones: 10 paying customers, EUR 1.5M ARR, Series A ready.">
+  <div class="bg-glow" style="width:500px;height:500px;background:rgba(30,64,175,0.06);top:-200px;left:-100px;"></div>
+  <div class="fade-up" style="text-align:center;margin-bottom:40px;">
+    <p class="label" style="color:var(--accent);margin-bottom:20px;">The Ask</p>
+    <h2 style="font-size:52px;color:var(--white);">&euro;2.5M Seed Round</h2>
+  </div>
+  <div style="display:flex;gap:60px;align-items:flex-start;">
+    <div class="fade-up d1 fund-bars" style="flex:1;">
+      <div class="fund-row">
+        <div class="fund-label">R&D</div>
+        <div class="fund-track">
+          <div class="fund-fill" style="width:0;background:linear-gradient(90deg, var(--blue), var(--blue-light));" data-width="48%">&euro;1.2M (48%)</div>
+        </div>
+      </div>
+      <div class="fund-row">
+        <div class="fund-label">Go-to-Market</div>
+        <div class="fund-track">
+          <div class="fund-fill" style="width:0;background:linear-gradient(90deg, #059669, var(--success));" data-width="30%">&euro;750K (30%)</div>
+        </div>
+      </div>
+      <div class="fund-row">
+        <div class="fund-label">Operations</div>
+        <div class="fund-track">
+          <div class="fund-fill" style="width:0;background:linear-gradient(90deg, #d97706, var(--warn));" data-width="14%">&euro;350K (14%)</div>
+        </div>
+      </div>
+      <div class="fund-row">
+        <div class="fund-label">Reserve</div>
+        <div class="fund-track">
+          <div class="fund-fill" style="width:0;background:linear-gradient(90deg, #6b7280, #9ca3af);" data-width="8%">&euro;200K (8%)</div>
+        </div>
+      </div>
+    </div>
+    <div class="fade-up d2" style="flex:1;max-width:340px;">
+      <p style="font-size:14px;font-weight:600;color:var(--accent);margin-bottom:20px;">12-Month Milestones</p>
+      <div style="display:flex;flex-direction:column;gap:14px;">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div style="min-width:28px;height:28px;border-radius:8px;background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.2);display:flex;align-items:center;justify-content:center;">
+            <svg width="14" height="14" fill="none" stroke="#10b981" stroke-width="2.5"><path d="M2 7l4 4 8-8"/></svg>
+          </div>
+          <p style="font-size:14px;color:rgba(255,255,255,0.7);">10 paying enterprise customers</p>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div style="min-width:28px;height:28px;border-radius:8px;background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.2);display:flex;align-items:center;justify-content:center;">
+            <svg width="14" height="14" fill="none" stroke="#10b981" stroke-width="2.5"><path d="M2 7l4 4 8-8"/></svg>
+          </div>
+          <p style="font-size:14px;color:rgba(255,255,255,0.7);">&euro;1.5M ARR</p>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div style="min-width:28px;height:28px;border-radius:8px;background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.2);display:flex;align-items:center;justify-content:center;">
+            <svg width="14" height="14" fill="none" stroke="#10b981" stroke-width="2.5"><path d="M2 7l4 4 8-8"/></svg>
+          </div>
+          <p style="font-size:14px;color:rgba(255,255,255,0.7);">Series A readiness</p>
+        </div>
+      </div>
+      <div style="margin-top:28px;padding:16px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:12px;">
+        <p style="font-size:11px;font-weight:600;color:var(--gray-light);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;">Target Investors</p>
+        <p style="font-size:12px;color:rgba(255,255,255,0.5);">Deep tech VCs, industrial-focused funds, strategic automotive OEMs</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ SLIDE 12: THE CLOSE ═══════════════ -->
+<div class="slide dark" data-notes="Slow. Deliberate. Let each line land. 'Inspekta does not blink.' is the mic drop. End with silence and the logo.">
+  <div class="bg-glow" style="width:800px;height:800px;background:rgba(30,64,175,0.04);top:50%;left:50%;transform:translate(-50%,-50%);"></div>
+  <div style="text-align:center;max-width:700px;">
+    <div class="fade-up">
+      <p style="font-size:20px;font-weight:300;color:rgba(255,255,255,0.5);line-height:1.8;margin-bottom:40px;">
+        "The future of manufacturing is not about making things faster.<br>
+        It is about making things <em style="color:var(--white);font-weight:500;">right</em> -- every single time."
+      </p>
+    </div>
+    <div class="fade-up d1">
+      <p style="font-size:20px;font-weight:300;color:rgba(255,255,255,0.5);line-height:1.8;margin-bottom:40px;">
+        "Human inspectors are extraordinary. But they are human.<br>
+        They blink. They tire. They miss."
+      </p>
+    </div>
+    <div class="fade-up d2">
+      <p style="font-size:32px;font-weight:700;color:var(--white);margin-bottom:60px;">
+        Inspekta does not blink.
+      </p>
+    </div>
+    <div class="fade-up d3">
+      <h1 style="font-size:64px;color:var(--white);margin-bottom:16px;">INSPEKTA</h1>
+      <p style="font-size:14px;font-weight:400;letter-spacing:4px;color:var(--accent);text-transform:uppercase;">
+        See What Humans Miss. Fix What Machines Can't.
+      </p>
+    </div>
+    <div class="fade-up d4" style="margin-top:60px;">
+      <p style="font-size:14px;color:rgba(255,255,255,0.3);">daniel@inspekta.ai&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;inspekta.ai</p>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ═══════════════ SPEAKER NOTES PANEL ═══════════════ -->
+<div id="notes-panel">
+  <div class="notes-title">Speaker Notes</div>
+  <div id="notes-content"></div>
+</div>
+
+<script>
+(function() {
+  const slides = document.querySelectorAll('.slide');
+  const progressBar = document.getElementById('progress-bar');
+  const slideNumber = document.getElementById('slide-number');
+  const notesPanel = document.getElementById('notes-panel');
+  const notesContent = document.getElementById('notes-content');
+  let current = 0;
+  let notesVisible = false;
+
+  function updateProgress() {
+    const pct = ((current + 1) / slides.length) * 100;
+    progressBar.style.width = pct + '%';
+    slideNumber.textContent = (current + 1) + ' / ' + slides.length;
+  }
+
+  function showNotes() {
+    const note = slides[current].dataset.notes || 'No notes for this slide.';
+    notesContent.textContent = note;
+  }
+
+  function goTo(index) {
+    if (index < 0 || index >= slides.length || index === current) return;
+    const dir = index > current ? 1 : -1;
+    slides[current].classList.remove('active');
+    slides[current].classList.add(dir > 0 ? 'exit-left' : '');
+    setTimeout(() => {
+      slides[current === 0 && dir === -1 ? 0 : current].classList.remove('exit-left');
+    }, 600);
+    const prev = current;
+    current = index;
+    slides[current].style.transform = dir > 0 ? 'translateX(60px)' : 'translateX(-60px)';
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        slides[prev].classList.remove('active', 'exit-left');
+        slides[current].classList.add('active');
+        slides[current].style.transform = '';
+        updateProgress();
+        showNotes();
+        animateSlide(current);
+      });
+    });
+  }
+
+  function next() { goTo(current + 1); }
+  function prev() { goTo(current - 1); }
+
+  // Keyboard
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') { e.preventDefault(); next(); }
+    else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') { e.preventDefault(); prev(); }
+    else if (e.key === 'f' || e.key === 'F') {
+      if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+      else document.exitFullscreen();
+    }
+    else if (e.key === 'n' || e.key === 'N') {
+      notesVisible = !notesVisible;
+      notesPanel.classList.toggle('visible', notesVisible);
+    }
+  });
+
+  // Click nav
+  document.addEventListener('click', function(e) {
+    if (e.target.closest('#notes-panel')) return;
+    const x = e.clientX / window.innerWidth;
+    if (x > 0.5) next(); else prev();
+  });
+
+  // Touch nav
+  let touchStartX = 0;
+  document.addEventListener('touchstart', function(e) { touchStartX = e.touches[0].clientX; });
+  document.addEventListener('touchend', function(e) {
+    const dx = e.changedTouches[0].clientX - touchStartX;
+    if (Math.abs(dx) > 50) { dx < 0 ? next() : prev(); }
+  });
+
+  // Animated counters
+  function animateCounters(slide) {
+    const counters = slide.querySelectorAll('.counter');
+    counters.forEach(function(el) {
+      const target = parseFloat(el.dataset.target);
+      const decimals = parseInt(el.dataset.decimals) || 0;
+      const duration = 1500;
+      const start = performance.now();
+      function tick(now) {
+        const elapsed = now - start;
+        const progress = Math.min(elapsed / duration, 1);
+        const eased = 1 - Math.pow(1 - progress, 3);
+        const value = eased * target;
+        el.textContent = value.toFixed(decimals);
+        if (progress < 1) requestAnimationFrame(tick);
+      }
+      requestAnimationFrame(tick);
+    });
+  }
+
+  // ROI bars
+  function animateROIBars(slide) {
+    const bars = slide.querySelectorAll('.roi-bar[data-height]');
+    bars.forEach(function(bar) {
+      setTimeout(function() {
+        bar.style.height = bar.dataset.height + 'px';
+      }, 400);
+    });
+  }
+
+  // Fund bars
+  function animateFundBars(slide) {
+    const fills = slide.querySelectorAll('.fund-fill[data-width]');
+    fills.forEach(function(fill, i) {
+      setTimeout(function() {
+        fill.style.width = fill.dataset.width;
+      }, 300 + i * 150);
+    });
+  }
+
+  function animateSlide(index) {
+    const slide = slides[index];
+    animateCounters(slide);
+    animateROIBars(slide);
+    animateFundBars(slide);
+  }
+
+  // Init
+  updateProgress();
+  showNotes();
+  animateSlide(0);
+})();
+</script>
+</body>
+</html>
