@@ -70,7 +70,7 @@ _alerts: List[Dict[str, Any]] = []
 _factory_lines: Dict[str, Dict[str, Any]] = {}
 _maintenance_schedule: List[Dict[str, Any]] = []
 
-# Default factory line for demo
+# Default factory lines for demo
 _factory_lines["line-1"] = {
     "id": "line-1",
     "name": "Assembly Line Alpha",
@@ -80,6 +80,155 @@ _factory_lines["line-1"] = {
     "total_inspections": 0,
     "total_defects": 0,
 }
+_factory_lines["line-2"] = {
+    "id": "line-2",
+    "name": "Precision Line Beta",
+    "camera_url": None,
+    "active": True,
+    "created_at": datetime.now(timezone.utc).isoformat(),
+    "total_inspections": 0,
+    "total_defects": 0,
+}
+
+# ---------------------------------------------------------------------------
+# Pre-computed demo results (consistent across demo runs)
+# ---------------------------------------------------------------------------
+
+_DEMO_INSPECTION_RESULTS: list[dict] = [
+    {
+        "image_id": "line-1_demo_0001",
+        "pass_fail": "FAIL",
+        "num_defects": 1,
+        "detections": [{"defect_type": "crack", "confidence": 0.9234, "severity": "critical", "bbox": {"x_min": 120.5, "y_min": 85.3, "x_max": 210.8, "y_max": 130.1}}],
+        "inference_time_ms": 47.32,
+        "image_width": 512,
+        "image_height": 512,
+        "line_id": "line-1",
+    },
+    {
+        "image_id": "line-1_demo_0002",
+        "pass_fail": "PASS",
+        "num_defects": 0,
+        "detections": [],
+        "inference_time_ms": 42.18,
+        "image_width": 512,
+        "image_height": 512,
+        "line_id": "line-1",
+    },
+    {
+        "image_id": "line-1_demo_0003",
+        "pass_fail": "FAIL",
+        "num_defects": 2,
+        "detections": [
+            {"defect_type": "scratch", "confidence": 0.8712, "severity": "high", "bbox": {"x_min": 50.0, "y_min": 200.5, "x_max": 180.3, "y_max": 215.8}},
+            {"defect_type": "discoloration", "confidence": 0.6543, "severity": "medium", "bbox": {"x_min": 300.2, "y_min": 100.0, "x_max": 380.5, "y_max": 170.3}},
+        ],
+        "inference_time_ms": 51.87,
+        "image_width": 512,
+        "image_height": 512,
+        "line_id": "line-1",
+    },
+    {
+        "image_id": "line-1_demo_0004",
+        "pass_fail": "FAIL",
+        "num_defects": 1,
+        "detections": [{"defect_type": "deformation", "confidence": 0.7891, "severity": "high", "bbox": {"x_min": 250.0, "y_min": 250.0, "x_max": 340.5, "y_max": 330.2}}],
+        "inference_time_ms": 45.63,
+        "image_width": 512,
+        "image_height": 512,
+        "line_id": "line-1",
+    },
+    {
+        "image_id": "line-1_demo_0005",
+        "pass_fail": "PASS",
+        "num_defects": 0,
+        "detections": [],
+        "inference_time_ms": 41.95,
+        "image_width": 512,
+        "image_height": 512,
+        "line_id": "line-1",
+    },
+    {
+        "image_id": "line-2_demo_0001",
+        "pass_fail": "FAIL",
+        "num_defects": 1,
+        "detections": [{"defect_type": "scratch", "confidence": 0.9102, "severity": "critical", "bbox": {"x_min": 80.0, "y_min": 300.0, "x_max": 400.0, "y_max": 315.5}}],
+        "inference_time_ms": 48.21,
+        "image_width": 512,
+        "image_height": 512,
+        "line_id": "line-2",
+    },
+    {
+        "image_id": "line-2_demo_0002",
+        "pass_fail": "PASS",
+        "num_defects": 0,
+        "detections": [],
+        "inference_time_ms": 43.07,
+        "image_width": 512,
+        "image_height": 512,
+        "line_id": "line-2",
+    },
+    {
+        "image_id": "line-2_demo_0003",
+        "pass_fail": "FAIL",
+        "num_defects": 1,
+        "detections": [{"defect_type": "crack", "confidence": 0.8456, "severity": "high", "bbox": {"x_min": 150.0, "y_min": 150.0, "x_max": 230.0, "y_max": 200.0}}],
+        "inference_time_ms": 46.55,
+        "image_width": 512,
+        "image_height": 512,
+        "line_id": "line-2",
+    },
+    {
+        "image_id": "line-2_demo_0004",
+        "pass_fail": "FAIL",
+        "num_defects": 2,
+        "detections": [
+            {"defect_type": "discoloration", "confidence": 0.7234, "severity": "medium", "bbox": {"x_min": 10.0, "y_min": 10.0, "x_max": 100.0, "y_max": 90.0}},
+            {"defect_type": "deformation", "confidence": 0.5812, "severity": "medium", "bbox": {"x_min": 350.0, "y_min": 400.0, "x_max": 450.0, "y_max": 480.0}},
+        ],
+        "inference_time_ms": 52.41,
+        "image_width": 512,
+        "image_height": 512,
+        "line_id": "line-2",
+    },
+    {
+        "image_id": "line-2_demo_0005",
+        "pass_fail": "PASS",
+        "num_defects": 0,
+        "detections": [],
+        "inference_time_ms": 40.88,
+        "image_width": 512,
+        "image_height": 512,
+        "line_id": "line-2",
+    },
+]
+
+
+def _seed_demo_inspections() -> None:
+    """Populate inspection history with pre-computed demo results."""
+    for r in _DEMO_INSPECTION_RESULTS:
+        record = {**r, "timestamp": datetime.now(timezone.utc).isoformat()}
+        _inspection_history.append(record)
+        line = _factory_lines.get(r["line_id"])
+        if line:
+            line["total_inspections"] = line.get("total_inspections", 0) + 1
+            line["total_defects"] = line.get("total_defects", 0) + r["num_defects"]
+        # Generate alerts for high/critical
+        for det in r.get("detections", []):
+            if det["severity"] in ("critical", "high"):
+                _alerts.append({
+                    "id": str(uuid.uuid4()),
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "line_id": r["line_id"],
+                    "image_id": r["image_id"],
+                    "defect_type": det["defect_type"],
+                    "severity": det["severity"],
+                    "confidence": det["confidence"],
+                    "acknowledged": False,
+                })
+
+
+_seed_demo_inspections()
 
 # ---------------------------------------------------------------------------
 # Pydantic schemas
@@ -127,10 +276,18 @@ async def lifespan(app: FastAPI):
     logger.info("Starting Inspekta backend ...")
     if not os.environ.get("INSPEKTA_API_KEY"):
         logger.info("Generated API key (set INSPEKTA_API_KEY env var to override): %s", _API_KEY)
-    detector = DefectDetector()
-    detector.load_model()  # demo mode — pretrained ResNet18 backbone, no task-specific weights
-    detector.warm_up()
-    logger.info("Detector ready.")
+    try:
+        detector = DefectDetector()
+        detector.load_model()  # demo mode — pretrained ResNet18 backbone, no task-specific weights
+        detector.warm_up()
+        logger.info("Detector ready (device=%s).", detector.device)
+    except Exception as exc:
+        logger.warning(
+            "Model failed to load: %s. Live inspection will be unavailable, "
+            "but demo endpoints (/api/v1/demo/*) and dashboard will still work.",
+            exc,
+        )
+        detector = None
     yield
     logger.info("Shutting down Inspekta backend.")
 
@@ -276,7 +433,53 @@ def _predictive_maintenance_score(line_id: str, window: int = 200) -> Dict[str, 
 
 @app.get("/health", dependencies=[])
 async def health_check():
-    return {"status": "ok", "model_loaded": detector is not None and detector.model is not None}
+    return {
+        "status": "ok",
+        "model_loaded": detector is not None and detector.model is not None,
+        "factory_lines": len(_factory_lines),
+        "inspections_recorded": len(_inspection_history),
+        "pending_alerts": sum(1 for a in _alerts if not a["acknowledged"]),
+    }
+
+
+# ---- Demo endpoint (pre-computed, no model needed) -----------------------
+
+@app.get("/api/v1/demo/inspect", dependencies=[])
+async def demo_inspect(line_id: Optional[str] = None):
+    """Return pre-computed inspection results for consistent demos.
+
+    This endpoint works even if the model is not loaded, making it ideal
+    for live demos where GPU availability is uncertain.
+    """
+    results = _DEMO_INSPECTION_RESULTS
+    if line_id:
+        results = [r for r in results if r.get("line_id") == line_id]
+    return {
+        "mode": "demo",
+        "count": len(results),
+        "results": results,
+        "note": "Pre-computed results for demo. Upload images to /api/v1/inspect for live inference.",
+    }
+
+
+@app.get("/api/v1/demo/synthetic", dependencies=[])
+async def demo_synthetic(seed: int = 42, num_defects: int = 3):
+    """Generate a synthetic defect image and return ground-truth annotations.
+
+    Useful for demoing the data pipeline without real factory images.
+    """
+    from detector import generate_synthetic_defect_image
+    _img, annotations = generate_synthetic_defect_image(
+        width=512, height=512, num_defects=num_defects, seed=seed
+    )
+    return {
+        "mode": "synthetic",
+        "seed": seed,
+        "image_size": [512, 512],
+        "num_defects": len(annotations),
+        "annotations": annotations,
+        "note": "Synthetic brushed-metal surface with artificial defects for testing.",
+    }
 
 
 # ---- Image analysis -------------------------------------------------------
