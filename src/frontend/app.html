@@ -1,0 +1,1505 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Inspekta | Industrial AI Quality Control</title>
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#f8f9fa;--bg-card:#ffffff;--blue:#1e40af;--blue-light:#3b82f6;--blue-dark:#1e3a5f;
+  --steel:#374151;--steel-light:#6b7280;--steel-lighter:#9ca3af;
+  --green:#059669;--green-bg:#ecfdf5;--red:#dc2626;--red-bg:#fef2f2;
+  --orange:#d97706;--orange-bg:#fffbeb;--border:#e5e7eb;--border-dark:#d1d5db;
+  --shadow:0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.06);
+  --shadow-md:0 4px 6px rgba(0,0,0,.07),0 2px 4px rgba(0,0,0,.06);
+  --shadow-lg:0 10px 15px rgba(0,0,0,.08),0 4px 6px rgba(0,0,0,.05);
+  --radius:8px;--radius-lg:12px;
+  --font:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;
+  --mono:'SF Mono','Fira Code','Fira Mono',Menlo,monospace;
+}
+html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--steel);font-size:14px;overflow:hidden}
+button{cursor:pointer;font-family:var(--font)}
+input,select,textarea{font-family:var(--font);font-size:14px}
+
+/* Layout */
+.app{display:flex;height:100vh;width:100vw}
+.sidebar{width:240px;background:linear-gradient(180deg,#0f172a 0%,#1e293b 100%);color:#fff;display:flex;flex-direction:column;flex-shrink:0;z-index:100}
+.sidebar-logo{padding:24px 20px 20px;border-bottom:1px solid rgba(255,255,255,.08)}
+.sidebar-logo h1{font-size:20px;font-weight:700;letter-spacing:-.5px;display:flex;align-items:center;gap:8px}
+.sidebar-logo h1 .logo-icon{width:32px;height:32px;background:var(--blue);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;color:#fff}
+.sidebar-logo span{font-size:11px;color:var(--steel-lighter);display:block;margin-top:4px;letter-spacing:.5px;text-transform:uppercase}
+.sidebar-nav{flex:1;padding:12px 0;overflow-y:auto}
+.nav-item{display:flex;align-items:center;gap:12px;padding:11px 20px;color:rgba(255,255,255,.6);font-size:13px;font-weight:500;cursor:pointer;transition:all .15s;border-left:3px solid transparent;letter-spacing:.2px}
+.nav-item:hover{background:rgba(255,255,255,.06);color:rgba(255,255,255,.85)}
+.nav-item.active{background:rgba(30,64,175,.25);color:#fff;border-left-color:var(--blue-light)}
+.nav-item .nav-icon{font-size:16px;width:22px;text-align:center}
+.nav-item .nav-badge{margin-left:auto;background:var(--red);color:#fff;font-size:10px;padding:2px 7px;border-radius:10px;font-weight:600}
+.sidebar-footer{padding:16px 20px;border-top:1px solid rgba(255,255,255,.08);font-size:11px;color:var(--steel-lighter)}
+.sidebar-footer .status-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--green);margin-right:6px}
+
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.topbar{height:56px;background:var(--bg-card);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 28px;flex-shrink:0}
+.topbar-title{font-size:16px;font-weight:600;color:var(--steel)}
+.topbar-right{display:flex;align-items:center;gap:16px}
+.topbar-time{font-size:12px;color:var(--steel-light);font-family:var(--mono)}
+.api-key-input{display:flex;align-items:center;gap:6px}
+.api-key-input label{font-size:11px;color:var(--steel-light);text-transform:uppercase;letter-spacing:.5px}
+.api-key-input input{width:200px;padding:5px 10px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-family:var(--mono);background:var(--bg)}
+.api-key-input input:focus{outline:none;border-color:var(--blue-light);box-shadow:0 0 0 3px rgba(59,130,246,.1)}
+
+.content{flex:1;overflow-y:auto;padding:24px 28px}
+.tab-content{display:none}
+.tab-content.active{display:block}
+
+/* Cards */
+.card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow);overflow:hidden}
+.card-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.card-header h3{font-size:14px;font-weight:600;color:var(--steel)}
+.card-body{padding:20px}
+
+/* Grid */
+.grid{display:grid;gap:20px}
+.grid-4{grid-template-columns:repeat(4,1fr)}
+.grid-3{grid-template-columns:repeat(3,1fr)}
+.grid-2{grid-template-columns:repeat(2,1fr)}
+.grid-1{grid-template-columns:1fr}
+
+/* Stat cards */
+.stat-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;box-shadow:var(--shadow);position:relative;overflow:hidden}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+.stat-card.blue::before{background:var(--blue)}
+.stat-card.green::before{background:var(--green)}
+.stat-card.red::before{background:var(--red)}
+.stat-card.orange::before{background:var(--orange)}
+.stat-card .stat-label{font-size:11px;text-transform:uppercase;letter-spacing:.8px;color:var(--steel-light);font-weight:600;margin-bottom:8px}
+.stat-card .stat-value{font-size:32px;font-weight:700;color:var(--steel);line-height:1;font-variant-numeric:tabular-nums}
+.stat-card .stat-value.red-val{color:var(--red)}
+.stat-card .stat-sub{font-size:12px;color:var(--steel-lighter);margin-top:6px}
+.stat-card .stat-icon{position:absolute;right:20px;top:50%;transform:translateY(-50%);font-size:36px;opacity:.12}
+
+/* Buttons */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:var(--radius);font-size:13px;font-weight:500;border:1px solid transparent;transition:all .15s}
+.btn-primary{background:var(--blue);color:#fff;border-color:var(--blue)}
+.btn-primary:hover{background:#1d4ed8}
+.btn-secondary{background:var(--bg);color:var(--steel);border-color:var(--border-dark)}
+.btn-secondary:hover{background:#e5e7eb}
+.btn-sm{padding:5px 12px;font-size:12px}
+.btn-danger{background:var(--red);color:#fff}
+.btn-danger:hover{background:#b91c1c}
+.btn-success{background:var(--green);color:#fff}
+
+/* Tables */
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse}
+th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.7px;color:var(--steel-light);font-weight:600;padding:10px 16px;border-bottom:2px solid var(--border);background:var(--bg)}
+td{padding:12px 16px;border-bottom:1px solid var(--border);font-size:13px;color:var(--steel)}
+tr:hover td{background:rgba(30,64,175,.02)}
+
+/* Badges */
+.badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;letter-spacing:.3px}
+.badge-pass{background:var(--green-bg);color:var(--green)}
+.badge-fail{background:var(--red-bg);color:var(--red)}
+.badge-warn{background:var(--orange-bg);color:var(--orange)}
+.badge-info{background:#eff6ff;color:var(--blue)}
+.badge-critical{background:var(--red);color:#fff}
+.badge-high{background:#f97316;color:#fff}
+.badge-medium{background:var(--orange);color:#fff}
+.badge-low{background:var(--green);color:#fff}
+
+/* Status dot */
+.status{display:inline-flex;align-items:center;gap:6px;font-size:12px}
+.status::before{content:'';width:8px;height:8px;border-radius:50%}
+.status-active::before{background:var(--green);box-shadow:0 0 6px rgba(5,150,105,.4)}
+.status-inactive::before{background:var(--steel-lighter)}
+.status-warning::before{background:var(--orange);box-shadow:0 0 6px rgba(217,119,6,.4)}
+.status-critical::before{background:var(--red);box-shadow:0 0 6px rgba(220,38,38,.4);animation:pulse-dot 1.5s infinite}
+@keyframes pulse-dot{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* Camera grid */
+.camera-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.camera-cell{background:#0f172a;border-radius:var(--radius);aspect-ratio:16/9;display:flex;flex-direction:column;align-items:center;justify-content:center;color:rgba(255,255,255,.5);position:relative;overflow:hidden;border:1px solid #1e293b}
+.camera-cell .cam-label{position:absolute;top:8px;left:10px;font-size:10px;background:rgba(0,0,0,.6);padding:2px 8px;border-radius:4px;color:#fff;font-weight:600;letter-spacing:.5px}
+.camera-cell .cam-status{position:absolute;top:8px;right:10px;font-size:9px;background:rgba(5,150,105,.8);padding:2px 8px;border-radius:4px;color:#fff;font-weight:600}
+.camera-cell .cam-icon{font-size:28px;margin-bottom:6px;opacity:.4}
+.camera-cell .cam-text{font-size:11px;opacity:.5}
+.camera-cell .cam-overlay{position:absolute;inset:0;border:2px solid transparent;border-radius:var(--radius);transition:border-color .3s}
+.camera-cell:hover .cam-overlay{border-color:var(--blue-light)}
+.camera-cell .scanline{position:absolute;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,rgba(59,130,246,.3),transparent);animation:scanline 4s linear infinite}
+@keyframes scanline{0%{top:-2px}100%{top:100%}}
+
+/* Alert ticker */
+.alert-ticker{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px 20px;box-shadow:var(--shadow)}
+.alert-ticker-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.alert-ticker-header h3{font-size:14px;font-weight:600;display:flex;align-items:center;gap:8px}
+.alert-ticker-header h3 .alert-count{background:var(--red);color:#fff;font-size:10px;padding:2px 8px;border-radius:10px}
+.alert-item{display:flex;align-items:center;gap:12px;padding:8px 12px;border-radius:var(--radius);margin-bottom:4px;font-size:12px;transition:background .15s}
+.alert-item:hover{background:var(--bg)}
+.alert-item .alert-sev{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.alert-item .alert-sev.critical{background:var(--red);box-shadow:0 0 6px rgba(220,38,38,.5)}
+.alert-item .alert-sev.high{background:#f97316}
+.alert-item .alert-time{color:var(--steel-lighter);font-family:var(--mono);font-size:11px;margin-left:auto;flex-shrink:0}
+.alert-item .alert-ack{padding:2px 8px;border-radius:4px;border:1px solid var(--border);background:var(--bg);font-size:10px;cursor:pointer;color:var(--steel-light);flex-shrink:0}
+.alert-item .alert-ack:hover{background:var(--green);color:#fff;border-color:var(--green)}
+
+/* Donut chart */
+.donut-chart{position:relative;width:160px;height:160px;margin:0 auto}
+.donut-chart svg{width:100%;height:100%;transform:rotate(-90deg)}
+.donut-chart .donut-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.donut-chart .donut-center .donut-total{font-size:24px;font-weight:700;color:var(--steel)}
+.donut-chart .donut-center .donut-label{font-size:10px;color:var(--steel-lighter);text-transform:uppercase;letter-spacing:.5px}
+.donut-legend{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin-top:16px}
+.donut-legend-item{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--steel-light)}
+.donut-legend-item .dot{width:10px;height:10px;border-radius:3px}
+
+/* Inspect */
+.drop-zone{border:2px dashed var(--border-dark);border-radius:var(--radius-lg);padding:48px;text-align:center;cursor:pointer;transition:all .2s;background:var(--bg)}
+.drop-zone:hover,.drop-zone.dragover{border-color:var(--blue-light);background:rgba(59,130,246,.03)}
+.drop-zone .drop-icon{font-size:40px;margin-bottom:12px;opacity:.3}
+.drop-zone .drop-title{font-size:15px;font-weight:600;color:var(--steel);margin-bottom:4px}
+.drop-zone .drop-sub{font-size:12px;color:var(--steel-lighter)}
+.inspect-result{display:grid;grid-template-columns:1fr 360px;gap:20px;margin-top:20px}
+.inspect-image-area{background:#0f172a;border-radius:var(--radius-lg);aspect-ratio:16/10;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center}
+.inspect-image-area img{max-width:100%;max-height:100%;object-fit:contain}
+.inspect-image-area .placeholder-text{color:rgba(255,255,255,.3);font-size:14px}
+.bbox{position:absolute;border:2px solid;border-radius:3px;pointer-events:none}
+.bbox-label{position:absolute;top:-20px;left:-2px;padding:1px 6px;font-size:10px;font-weight:700;color:#fff;border-radius:3px 3px 3px 0;white-space:nowrap;font-family:var(--mono)}
+.bbox.crack{border-color:#ef4444}.bbox.crack .bbox-label{background:#ef4444}
+.bbox.scratch{border-color:#f59e0b}.bbox.scratch .bbox-label{background:#f59e0b}
+.bbox.dent{border-color:#8b5cf6}.bbox.dent .bbox-label{background:#8b5cf6}
+.bbox.discoloration{border-color:#06b6d4}.bbox.discoloration .bbox-label{background:#06b6d4}
+.bbox.porosity{border-color:#ec4899}.bbox.porosity .bbox-label{background:#ec4899}
+.bbox.misalignment{border-color:#f97316}.bbox.misalignment .bbox-label{background:#f97316}
+.defect-detail{display:flex;gap:8px;padding:10px 0;border-bottom:1px solid var(--border)}
+.defect-detail:last-child{border-bottom:none}
+.defect-detail .dd-color{width:4px;border-radius:2px;flex-shrink:0}
+.defect-detail .dd-info{flex:1}
+.defect-detail .dd-type{font-weight:600;font-size:13px;text-transform:capitalize}
+.defect-detail .dd-meta{font-size:11px;color:var(--steel-lighter);margin-top:2px;font-family:var(--mono)}
+.confidence-bar{height:4px;background:var(--border);border-radius:2px;margin-top:4px;overflow:hidden}
+.confidence-bar .fill{height:100%;border-radius:2px;transition:width .5s}
+
+/* Charts (CSS-based) */
+.bar-chart{display:flex;align-items:flex-end;gap:8px;height:180px;padding:0 4px}
+.bar-chart .bar-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px}
+.bar-chart .bar{width:100%;border-radius:4px 4px 0 0;transition:height .5s;min-height:2px;position:relative}
+.bar-chart .bar:hover{opacity:.85}
+.bar-chart .bar-val{font-size:10px;color:var(--steel-lighter);font-family:var(--mono)}
+.bar-chart .bar-label{font-size:10px;color:var(--steel-light);text-align:center;word-break:break-all;margin-top:2px}
+
+.line-chart{position:relative;height:200px;background:var(--bg);border-radius:var(--radius);border:1px solid var(--border);overflow:hidden}
+.line-chart svg{width:100%;height:100%}
+.line-chart .grid-line{stroke:var(--border);stroke-width:1}
+.line-chart .data-line{fill:none;stroke:var(--blue);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.line-chart .data-area{fill:url(#blueGrad);opacity:.15}
+.line-chart .data-dot{fill:var(--blue);r:3}
+.line-chart .y-label{font-size:10px;fill:var(--steel-lighter);font-family:var(--mono)}
+.line-chart .x-label{font-size:10px;fill:var(--steel-lighter);font-family:var(--mono);text-anchor:middle}
+
+/* Maintenance */
+.health-bar{height:8px;background:var(--border);border-radius:4px;overflow:hidden;flex:1}
+.health-bar .fill{height:100%;border-radius:4px;transition:width .5s}
+.health-green{background:var(--green)}
+.health-orange{background:var(--orange)}
+.health-red{background:var(--red)}
+
+.countdown{font-family:var(--mono);font-size:18px;font-weight:700;color:var(--steel)}
+.countdown .cd-unit{font-size:10px;color:var(--steel-lighter);font-weight:400;text-transform:uppercase}
+
+/* Modal */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:1000;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s}
+.modal-overlay.show{opacity:1;pointer-events:auto}
+.modal{background:var(--bg-card);border-radius:var(--radius-lg);box-shadow:var(--shadow-lg);width:480px;max-height:80vh;overflow-y:auto}
+.modal-header{padding:20px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.modal-header h3{font-size:16px;font-weight:600}
+.modal-close{background:none;border:none;font-size:20px;color:var(--steel-lighter);padding:4px}
+.modal-close:hover{color:var(--steel)}
+.modal-body{padding:24px}
+.form-group{margin-bottom:16px}
+.form-group label{display:block;font-size:12px;font-weight:600;color:var(--steel);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px}
+.form-group input,.form-group select,.form-group textarea{width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg)}
+.form-group input:focus,.form-group select:focus{outline:none;border-color:var(--blue-light);box-shadow:0 0 0 3px rgba(59,130,246,.1)}
+.modal-footer{padding:16px 24px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px}
+
+/* ROI */
+.slider-group{margin-bottom:24px}
+.slider-group label{display:flex;justify-content:space-between;font-size:12px;font-weight:600;color:var(--steel);margin-bottom:8px}
+.slider-group label span{color:var(--blue);font-family:var(--mono)}
+.slider-group input[type=range]{width:100%;-webkit-appearance:none;height:6px;background:var(--border);border-radius:3px;outline:none}
+.slider-group input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;background:var(--blue);border-radius:50%;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.2)}
+.roi-result-card{background:linear-gradient(135deg,#1e40af,#3b82f6);color:#fff;border-radius:var(--radius-lg);padding:28px;text-align:center}
+.roi-result-card .roi-big{font-size:42px;font-weight:800;margin-bottom:4px}
+.roi-result-card .roi-label{font-size:12px;opacity:.8;text-transform:uppercase;letter-spacing:1px}
+.roi-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:20px}
+.roi-metric{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;text-align:center}
+.roi-metric .rm-val{font-size:24px;font-weight:700;color:var(--steel)}
+.roi-metric .rm-label{font-size:11px;color:var(--steel-lighter);text-transform:uppercase;letter-spacing:.5px;margin-top:4px}
+
+/* Section headers */
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+.section-header h2{font-size:18px;font-weight:700;color:var(--steel)}
+.section-header p{font-size:12px;color:var(--steel-lighter);margin-top:2px}
+
+/* Toast */
+.toast{position:fixed;bottom:24px;right:24px;background:#1e293b;color:#fff;padding:12px 20px;border-radius:var(--radius);font-size:13px;box-shadow:var(--shadow-lg);z-index:2000;transform:translateY(80px);opacity:0;transition:all .3s}
+.toast.show{transform:translateY(0);opacity:1}
+
+/* History list */
+.history-item{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);font-size:13px}
+.history-item:last-child{border-bottom:none}
+.history-item .hi-id{font-family:var(--mono);font-size:11px;color:var(--steel-lighter);width:120px;flex-shrink:0}
+.history-item .hi-defects{flex:1}
+.history-item .hi-time{font-size:11px;color:var(--steel-lighter);font-family:var(--mono);flex-shrink:0}
+
+/* Responsive */
+@media(max-width:1200px){.grid-4{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:900px){.sidebar{width:60px}.sidebar-logo h1 span,.nav-item span:not(.nav-icon),.sidebar-footer,.nav-badge{display:none}.sidebar-logo h1{justify-content:center}.nav-item{justify-content:center;padding:11px 0}.inspect-result{grid-template-columns:1fr}}
+
+/* Loading spinner */
+.spinner{width:20px;height:20px;border:2px solid var(--border);border-top-color:var(--blue);border-radius:50%;animation:spin .6s linear infinite;display:inline-block}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Tab transition */
+.tab-content{animation:fadeIn .2s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+
+/* Scrollbar */
+::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--border-dark);border-radius:3px}::-webkit-scrollbar-thumb:hover{background:var(--steel-lighter)}
+
+/* 3-year chart bars */
+.year-bar-group{display:flex;gap:4px;align-items:flex-end;justify-content:center}
+.year-bar{width:28px;border-radius:4px 4px 0 0;transition:height .5s}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <h1><span class="logo-icon">I</span>Inspekta</h1>
+      <span>Industrial AI QC</span>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-item active" data-tab="dashboard"><span class="nav-icon">&#127968;</span><span>Dashboard</span></div>
+      <div class="nav-item" data-tab="inspect"><span class="nav-icon">&#128269;</span><span>Inspect</span></div>
+      <div class="nav-item" data-tab="analytics"><span class="nav-icon">&#128200;</span><span>Analytics</span></div>
+      <div class="nav-item" data-tab="maintenance"><span class="nav-icon">&#128295;</span><span>Maintenance</span></div>
+      <div class="nav-item" data-tab="lines"><span class="nav-icon">&#9881;</span><span>Lines</span><span class="nav-badge" id="lineCount">2</span></div>
+      <div class="nav-item" data-tab="roi"><span class="nav-icon">&#128176;</span><span>ROI</span></div>
+    </nav>
+    <div class="sidebar-footer">
+      <span class="status-dot"></span>System Online<br>
+      <span style="font-size:10px;opacity:.6">v1.0.0 &middot; MunichTech EXPO</span>
+    </div>
+  </aside>
+
+  <div class="main">
+    <!-- Top bar -->
+    <header class="topbar">
+      <div class="topbar-title" id="tabTitle">Dashboard</div>
+      <div class="topbar-right">
+        <div class="api-key-input">
+          <label>API Key</label>
+          <input type="password" id="apiKeyInput" placeholder="Enter X-API-Key" value="">
+        </div>
+        <div class="topbar-time" id="clock"></div>
+      </div>
+    </header>
+
+    <div class="content">
+
+      <!-- ==================== DASHBOARD ==================== -->
+      <div class="tab-content active" id="tab-dashboard">
+        <div class="section-header">
+          <div><h2>Production Overview</h2><p>Real-time quality control monitoring</p></div>
+          <button class="btn btn-secondary btn-sm" onclick="refreshDashboard()">&#8635; Refresh</button>
+        </div>
+
+        <div class="grid grid-4" style="margin-bottom:20px">
+          <div class="stat-card red">
+            <div class="stat-label">Defects Detected Today</div>
+            <div class="stat-value" id="dashDefects">--</div>
+            <div class="stat-sub" id="dashDefectsSub">Across all lines</div>
+            <div class="stat-icon">&#9888;</div>
+          </div>
+          <div class="stat-card blue">
+            <div class="stat-label">Inspection Rate</div>
+            <div class="stat-value" id="dashRate">--</div>
+            <div class="stat-sub">Inspections today</div>
+            <div class="stat-icon">&#128247;</div>
+          </div>
+          <div class="stat-card green">
+            <div class="stat-label">Accuracy</div>
+            <div class="stat-value" id="dashAccuracy">--</div>
+            <div class="stat-sub" id="dashAccSub">Model confidence</div>
+            <div class="stat-icon">&#9989;</div>
+          </div>
+          <div class="stat-card orange">
+            <div class="stat-label">System Uptime</div>
+            <div class="stat-value" id="dashUptime">--</div>
+            <div class="stat-sub">Continuous operation</div>
+            <div class="stat-icon">&#9889;</div>
+          </div>
+        </div>
+
+        <div class="grid grid-2" style="margin-bottom:20px">
+          <!-- Camera feeds -->
+          <div class="card">
+            <div class="card-header"><h3>Live Camera Feeds</h3><span class="badge badge-pass">4 Online</span></div>
+            <div class="card-body">
+              <div class="camera-grid" id="cameraGrid">
+                <div class="camera-cell"><span class="cam-label">CAM-01 &middot; Line Alpha</span><span class="cam-status">&#9679; LIVE</span><div class="cam-icon">&#128249;</div><div class="cam-text">1920x1080 @ 30fps</div><div class="cam-overlay"></div><div class="scanline"></div></div>
+                <div class="camera-cell"><span class="cam-label">CAM-02 &middot; Line Alpha</span><span class="cam-status">&#9679; LIVE</span><div class="cam-icon">&#128249;</div><div class="cam-text">1920x1080 @ 30fps</div><div class="cam-overlay"></div><div class="scanline" style="animation-delay:-1s"></div></div>
+                <div class="camera-cell"><span class="cam-label">CAM-03 &middot; Line Beta</span><span class="cam-status">&#9679; LIVE</span><div class="cam-icon">&#128249;</div><div class="cam-text">1920x1080 @ 30fps</div><div class="cam-overlay"></div><div class="scanline" style="animation-delay:-2s"></div></div>
+                <div class="camera-cell"><span class="cam-label">CAM-04 &middot; Line Beta</span><span class="cam-status">&#9679; LIVE</span><div class="cam-icon">&#128249;</div><div class="cam-text">1920x1080 @ 30fps</div><div class="cam-overlay"></div><div class="scanline" style="animation-delay:-3s"></div></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right column: alerts + donut -->
+          <div style="display:flex;flex-direction:column;gap:20px">
+            <!-- Alert ticker -->
+            <div class="alert-ticker" style="flex:1">
+              <div class="alert-ticker-header">
+                <h3>&#128680; Active Alerts <span class="alert-count" id="alertCount">0</span></h3>
+              </div>
+              <div id="alertList" style="max-height:120px;overflow-y:auto">
+                <div style="text-align:center;padding:16px;color:var(--steel-lighter);font-size:12px">No active alerts</div>
+              </div>
+            </div>
+
+            <!-- Defect distribution -->
+            <div class="card" style="flex:1">
+              <div class="card-header"><h3>Defect Distribution</h3></div>
+              <div class="card-body" style="display:flex;align-items:center;gap:16px">
+                <div class="donut-chart" id="donutChart">
+                  <svg viewBox="0 0 160 160"><circle cx="80" cy="80" r="60" fill="none" stroke="var(--border)" stroke-width="20"/></svg>
+                  <div class="donut-center"><span class="donut-total" id="donutTotal">0</span><span class="donut-label">Defects</span></div>
+                </div>
+                <div class="donut-legend" id="donutLegend" style="flex-direction:column;align-items:flex-start"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==================== INSPECT ==================== -->
+      <div class="tab-content" id="tab-inspect">
+        <div class="section-header">
+          <div><h2>Defect Inspection</h2><p>Upload images for AI-powered quality analysis</p></div>
+          <select id="inspectLineSelect" class="btn btn-secondary btn-sm" style="padding:6px 12px"></select>
+        </div>
+
+        <div class="drop-zone" id="dropZone">
+          <div class="drop-icon">&#128206;</div>
+          <div class="drop-title">Drop image here or click to upload</div>
+          <div class="drop-sub">Supports JPEG, PNG, BMP, TIFF &middot; Max 20 MB</div>
+          <input type="file" id="fileInput" accept="image/*" style="display:none">
+        </div>
+
+        <div id="inspectResult" style="display:none">
+          <div class="inspect-result">
+            <div class="inspect-image-area" id="inspectImageArea">
+              <span class="placeholder-text">Image will appear here</span>
+            </div>
+            <div>
+              <div class="card" style="margin-bottom:16px">
+                <div class="card-header">
+                  <h3>Inspection Result</h3>
+                  <span class="badge" id="resultBadge">--</span>
+                </div>
+                <div class="card-body">
+                  <div style="display:flex;justify-content:space-between;margin-bottom:12px">
+                    <div><div class="stat-label">Image ID</div><div style="font-family:var(--mono);font-size:12px" id="resultImageId">--</div></div>
+                    <div><div class="stat-label">Inference</div><div style="font-family:var(--mono);font-size:12px" id="resultInference">--</div></div>
+                  </div>
+                  <div id="defectDetails"></div>
+                  <div id="noDefects" style="display:none;text-align:center;padding:20px;color:var(--green)">
+                    <div style="font-size:28px;margin-bottom:8px">&#10003;</div>
+                    <div style="font-weight:600">No defects detected</div>
+                    <div style="font-size:12px;color:var(--steel-lighter);margin-top:4px">Part passes quality inspection</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:20px">
+          <div class="card-header"><h3>Recent Inspections</h3></div>
+          <div class="card-body" style="max-height:260px;overflow-y:auto" id="inspectionHistory">
+            <div style="text-align:center;color:var(--steel-lighter);font-size:12px;padding:20px">No inspections yet</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==================== ANALYTICS ==================== -->
+      <div class="tab-content" id="tab-analytics">
+        <div class="section-header">
+          <div><h2>Quality Analytics</h2><p>Trends, distributions, and performance metrics</p></div>
+          <div style="display:flex;gap:8px">
+            <select id="analyticsLineSelect" class="btn btn-secondary btn-sm" style="padding:6px 12px"></select>
+            <select id="analyticsRange" class="btn btn-secondary btn-sm" style="padding:6px 12px">
+              <option value="50">Last 50</option><option value="100" selected>Last 100</option><option value="500">Last 500</option><option value="1000">Last 1000</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-4" style="margin-bottom:20px">
+          <div class="stat-card blue"><div class="stat-label">Total Inspections</div><div class="stat-value" id="anTotal">--</div></div>
+          <div class="stat-card green"><div class="stat-label">Pass Rate</div><div class="stat-value" id="anPass">--</div></div>
+          <div class="stat-card red"><div class="stat-label">Defect Rate</div><div class="stat-value" id="anDefect">--</div></div>
+          <div class="stat-card orange"><div class="stat-label">Avg Inference</div><div class="stat-value" id="anInference">--</div></div>
+        </div>
+
+        <div class="grid grid-2" style="margin-bottom:20px">
+          <div class="card">
+            <div class="card-header"><h3>Defect Rate Over Time</h3></div>
+            <div class="card-body">
+              <div class="line-chart" id="defectRateChart"></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header"><h3>Defect Type Breakdown</h3></div>
+            <div class="card-body">
+              <div class="bar-chart" id="defectTypeChart"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid grid-2">
+          <div class="card">
+            <div class="card-header"><h3>Severity Distribution</h3></div>
+            <div class="card-body">
+              <div class="bar-chart" id="severityChart"></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header"><h3>Shift Analysis</h3></div>
+            <div class="card-body">
+              <div style="display:flex;gap:24px;align-items:center;justify-content:center;padding:12px 0">
+                <div style="text-align:center">
+                  <div style="font-size:11px;color:var(--steel-lighter);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">&#9728; Day Shift (06:00-18:00)</div>
+                  <div style="font-size:28px;font-weight:700;color:var(--steel)" id="dayShiftRate">--</div>
+                  <div style="font-size:11px;color:var(--steel-lighter);margin-top:4px" id="dayShiftCount">-- inspections</div>
+                </div>
+                <div style="width:1px;height:60px;background:var(--border)"></div>
+                <div style="text-align:center">
+                  <div style="font-size:11px;color:var(--steel-lighter);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">&#127769; Night Shift (18:00-06:00)</div>
+                  <div style="font-size:28px;font-weight:700;color:var(--steel)" id="nightShiftRate">--</div>
+                  <div style="font-size:11px;color:var(--steel-lighter);margin-top:4px" id="nightShiftCount">-- inspections</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==================== MAINTENANCE ==================== -->
+      <div class="tab-content" id="tab-maintenance">
+        <div class="section-header">
+          <div><h2>Predictive Maintenance</h2><p>AI-driven maintenance scheduling and health monitoring</p></div>
+          <button class="btn btn-primary btn-sm" onclick="openModal('maintenanceModal')">+ Schedule Task</button>
+        </div>
+
+        <div class="grid grid-2" style="margin-bottom:20px" id="healthCards"></div>
+
+        <div class="grid grid-2" style="margin-bottom:20px">
+          <div class="card">
+            <div class="card-header"><h3>Next Maintenance Predictions</h3></div>
+            <div class="card-body" id="maintenancePredictions"></div>
+          </div>
+          <div class="card">
+            <div class="card-header"><h3>Upcoming Schedule</h3></div>
+            <div class="card-body">
+              <div class="table-wrap">
+                <table>
+                  <thead><tr><th>Date</th><th>Line</th><th>Task</th><th>Priority</th><th>Status</th></tr></thead>
+                  <tbody id="scheduleTable"><tr><td colspan="5" style="text-align:center;color:var(--steel-lighter)">No scheduled tasks</td></tr></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><h3>Maintenance History Log</h3></div>
+          <div class="card-body" id="maintenanceLog" style="max-height:240px;overflow-y:auto">
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Timestamp</th><th>Line</th><th>Action</th><th>Health Before</th><th>Health After</th></tr></thead>
+                <tbody id="maintenanceHistoryTable"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==================== LINES ==================== -->
+      <div class="tab-content" id="tab-lines">
+        <div class="section-header">
+          <div><h2>Factory Lines</h2><p>Configure and monitor production lines</p></div>
+          <button class="btn btn-primary btn-sm" onclick="openModal('lineModal')">+ Add Line</button>
+        </div>
+
+        <div class="card">
+          <div class="card-body">
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Line</th><th>ID</th><th>Cameras</th><th>Status</th><th>Inspections</th><th>Defects</th><th>Defect Rate</th><th>Actions</th></tr></thead>
+                <tbody id="linesTable"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div id="lineDetail" style="display:none;margin-top:20px">
+          <div class="card">
+            <div class="card-header"><h3 id="lineDetailTitle">Line Detail</h3><button class="btn btn-secondary btn-sm" onclick="document.getElementById('lineDetail').style.display='none'">Close</button></div>
+            <div class="card-body">
+              <div class="grid grid-3">
+                <div><div class="stat-label">Line ID</div><div style="font-family:var(--mono);margin-top:4px" id="ldId">--</div></div>
+                <div><div class="stat-label">Created</div><div style="font-family:var(--mono);margin-top:4px" id="ldCreated">--</div></div>
+                <div><div class="stat-label">Camera URL</div><div style="font-family:var(--mono);margin-top:4px" id="ldCamera">--</div></div>
+                <div><div class="stat-label">Total Inspections</div><div style="font-size:20px;font-weight:700;margin-top:4px" id="ldInspections">--</div></div>
+                <div><div class="stat-label">Total Defects</div><div style="font-size:20px;font-weight:700;margin-top:4px" id="ldDefects">--</div></div>
+                <div><div class="stat-label">Defect Rate</div><div style="font-size:20px;font-weight:700;margin-top:4px" id="ldRate">--</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==================== ROI ==================== -->
+      <div class="tab-content" id="tab-roi">
+        <div class="section-header">
+          <div><h2>ROI Calculator</h2><p>Calculate your return on investment with Inspekta</p></div>
+        </div>
+
+        <div class="grid grid-2">
+          <div class="card">
+            <div class="card-header"><h3>Configuration</h3></div>
+            <div class="card-body">
+              <div class="slider-group">
+                <label>Units per Day <span id="roiUnitsVal">1,000</span></label>
+                <input type="range" id="roiUnits" min="100" max="50000" step="100" value="1000" oninput="updateROI()">
+              </div>
+              <div class="slider-group">
+                <label>Current Defect Rate <span id="roiDefRateVal">5.0%</span></label>
+                <input type="range" id="roiDefRate" min="0.5" max="20" step="0.5" value="5" oninput="updateROI()">
+              </div>
+              <div class="slider-group">
+                <label>Post-Inspekta Defect Rate <span id="roiDefRateAfterVal">0.5%</span></label>
+                <input type="range" id="roiDefRateAfter" min="0.1" max="5" step="0.1" value="0.5" oninput="updateROI()">
+              </div>
+              <div class="slider-group">
+                <label>Cost per Defect (USD) <span id="roiCostVal">$150</span></label>
+                <input type="range" id="roiCost" min="10" max="5000" step="10" value="150" oninput="updateROI()">
+              </div>
+              <div class="slider-group">
+                <label>System Cost (USD) <span id="roiSysCostVal">$250,000</span></label>
+                <input type="range" id="roiSysCost" min="50000" max="2000000" step="10000" value="250000" oninput="updateROI()">
+              </div>
+              <div class="slider-group">
+                <label>Inspectors Replaced <span id="roiInspectorsVal">3</span></label>
+                <input type="range" id="roiInspectors" min="0" max="20" step="1" value="3" oninput="updateROI()">
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <div class="roi-result-card" style="margin-bottom:20px">
+              <div class="roi-big" id="roiSavings">$0</div>
+              <div class="roi-label">Projected Annual Savings</div>
+            </div>
+            <div class="roi-grid">
+              <div class="roi-metric"><div class="rm-val" id="roiPayback">--</div><div class="rm-label">Payback (Days)</div></div>
+              <div class="roi-metric"><div class="rm-val" id="roi3yr">--</div><div class="rm-label">3-Year ROI</div></div>
+              <div class="roi-metric"><div class="rm-val" id="roiPrevented">--</div><div class="rm-label">Defects Prevented/yr</div></div>
+            </div>
+
+            <div class="card" style="margin-top:20px">
+              <div class="card-header"><h3>3-Year Projection</h3></div>
+              <div class="card-body" style="display:flex;align-items:flex-end;justify-content:center;gap:32px;height:180px;padding-bottom:8px" id="yearProjection">
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /content -->
+  </div><!-- /main -->
+</div><!-- /app -->
+
+<!-- Modals -->
+<div class="modal-overlay" id="lineModal">
+  <div class="modal">
+    <div class="modal-header"><h3 id="lineModalTitle">Add Factory Line</h3><button class="modal-close" onclick="closeModal('lineModal')">&times;</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label>Line Name</label><input id="lineNameInput" placeholder="e.g., Assembly Line Gamma"></div>
+      <div class="form-group"><label>Camera URL (optional)</label><input id="lineCameraInput" placeholder="rtsp://..."></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('lineModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="createLine()">Create Line</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="maintenanceModal">
+  <div class="modal">
+    <div class="modal-header"><h3>Schedule Maintenance</h3><button class="modal-close" onclick="closeModal('maintenanceModal')">&times;</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label>Line</label><select id="maintLineSelect"></select></div>
+      <div class="form-group"><label>Scheduled Date</label><input type="date" id="maintDateInput"></div>
+      <div class="form-group"><label>Description</label><textarea id="maintDescInput" rows="3" placeholder="Describe maintenance task..."></textarea></div>
+      <div class="form-group"><label>Priority</label><select id="maintPriorityInput"><option value="low">Low</option><option value="medium" selected>Medium</option><option value="high">High</option><option value="critical">Critical</option></select></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('maintenanceModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="createMaintenanceTask()">Schedule</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="editLineModal">
+  <div class="modal">
+    <div class="modal-header"><h3>Edit Factory Line</h3><button class="modal-close" onclick="closeModal('editLineModal')">&times;</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="editLineId">
+      <div class="form-group"><label>Line Name</label><input id="editLineName" placeholder="Line name"></div>
+      <div class="form-group"><label>Camera URL</label><input id="editLineCameraUrl" placeholder="rtsp://..."></div>
+      <div class="form-group"><label>Status</label><select id="editLineActive"><option value="true">Active</option><option value="false">Inactive</option></select></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('editLineModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="updateLine()">Update Line</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ============================================================
+// CONFIG & STATE
+// ============================================================
+const API_BASE = 'http://localhost:8000';
+let apiKey = '';
+let seedData = { lines: [], inspections: [], maintenance: [] };
+const startTime = Date.now();
+
+const DEFECT_COLORS = {
+  crack: '#ef4444', scratch: '#f59e0b', dent: '#8b5cf6',
+  discoloration: '#06b6d4', porosity: '#ec4899', misalignment: '#f97316',
+  surface_defect: '#6366f1', weld_defect: '#14b8a6', contamination: '#a855f7'
+};
+const SEVERITY_COLORS = { critical: '#dc2626', high: '#f97316', medium: '#d97706', low: '#059669' };
+
+// ============================================================
+// SEED DATA
+// ============================================================
+function generateSeedData() {
+  const defectTypes = ['crack', 'scratch', 'dent', 'discoloration', 'porosity', 'misalignment'];
+  const severities = ['low', 'medium', 'high', 'critical'];
+  const lines = [
+    { id: 'line-1', name: 'Assembly Line Alpha', camera_url: null, active: true, created_at: '2026-03-20T08:00:00Z', total_inspections: 847, total_defects: 43, cameras: 2, thresholds: { defect_rate: 0.05, confidence: 0.85 } },
+    { id: 'line-2', name: 'Welding Line Beta', camera_url: 'rtsp://10.0.1.42:554/stream', active: true, created_at: '2026-03-21T10:30:00Z', total_inspections: 612, total_defects: 31, cameras: 2, thresholds: { defect_rate: 0.04, confidence: 0.90 } }
+  ];
+
+  const inspections = [];
+  const now = Date.now();
+  for (let i = 0; i < 10; i++) {
+    const lineIdx = i % 2;
+    const line = lines[lineIdx];
+    const hasDefects = Math.random() < 0.6;
+    const detections = [];
+    if (hasDefects) {
+      const numDefects = Math.floor(Math.random() * 3) + 1;
+      for (let j = 0; j < numDefects; j++) {
+        detections.push({
+          defect_type: defectTypes[Math.floor(Math.random() * defectTypes.length)],
+          confidence: +(0.7 + Math.random() * 0.28).toFixed(4),
+          severity: severities[Math.floor(Math.random() * severities.length)],
+          bbox: {
+            x1: Math.floor(Math.random() * 300) + 50,
+            y1: Math.floor(Math.random() * 200) + 50,
+            x2: Math.floor(Math.random() * 300) + 400,
+            y2: Math.floor(Math.random() * 200) + 300
+          }
+        });
+      }
+    }
+    inspections.push({
+      image_id: `${line.id}_${(0x1000000 + Math.random() * 0xffffff | 0).toString(16).slice(1)}`,
+      pass_fail: hasDefects ? 'FAIL' : 'PASS',
+      detections,
+      inference_time_ms: +(12 + Math.random() * 25).toFixed(1),
+      timestamp: new Date(now - (9 - i) * 3600000 * 0.5).toISOString(),
+      line_id: line.id
+    });
+  }
+
+  const maintenance = [
+    { id: 'mt-001', line_id: 'line-1', scheduled_date: '2026-03-26', description: 'Replace conveyor belt bearings', priority: 'high', status: 'scheduled', created_at: '2026-03-22T14:00:00Z' },
+    { id: 'mt-002', line_id: 'line-2', scheduled_date: '2026-03-28', description: 'Calibrate welding torch alignment sensor', priority: 'medium', status: 'scheduled', created_at: '2026-03-23T09:00:00Z' },
+    { id: 'mt-003', line_id: 'line-1', scheduled_date: '2026-04-02', description: 'Quarterly camera lens cleaning and recalibration', priority: 'low', status: 'scheduled', created_at: '2026-03-23T11:00:00Z' },
+    { id: 'mt-004', line_id: 'line-2', scheduled_date: '2026-04-05', description: 'Replace thermal paste on vision processing unit', priority: 'medium', status: 'scheduled', created_at: '2026-03-24T07:00:00Z' }
+  ];
+
+  const maintenanceHistory = [
+    { timestamp: '2026-03-18T14:30:00Z', line_id: 'line-1', action: 'Replaced conveyor motor encoder', healthBefore: 0.62, healthAfter: 0.94 },
+    { timestamp: '2026-03-15T09:15:00Z', line_id: 'line-2', action: 'Recalibrated welding arm servo', healthBefore: 0.71, healthAfter: 0.97 },
+    { timestamp: '2026-03-10T16:00:00Z', line_id: 'line-1', action: 'Firmware update on camera controllers', healthBefore: 0.88, healthAfter: 0.93 },
+    { timestamp: '2026-03-05T11:45:00Z', line_id: 'line-2', action: 'Replaced defective proximity sensor', healthBefore: 0.55, healthAfter: 0.91 },
+  ];
+
+  seedData = { lines, inspections, maintenance, maintenanceHistory };
+}
+
+// ============================================================
+// API HELPERS
+// ============================================================
+function getApiKey() {
+  return document.getElementById('apiKeyInput').value || apiKey;
+}
+
+async function apiFetch(path, options = {}) {
+  const key = getApiKey();
+  const headers = { 'X-API-Key': key, ...(options.headers || {}) };
+  try {
+    const res = await fetch(`${API_BASE}${path}`, { ...options, headers });
+    if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+    return await res.json();
+  } catch (e) {
+    console.warn('API call failed:', path, e.message);
+    return null;
+  }
+}
+
+// ============================================================
+// NAVIGATION
+// ============================================================
+document.querySelectorAll('.nav-item').forEach(item => {
+  item.addEventListener('click', () => {
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+    item.classList.add('active');
+    const tab = item.dataset.tab;
+    document.getElementById(`tab-${tab}`).classList.add('active');
+    const titles = { dashboard: 'Dashboard', inspect: 'Defect Inspection', analytics: 'Quality Analytics', maintenance: 'Predictive Maintenance', lines: 'Factory Lines', roi: 'ROI Calculator' };
+    document.getElementById('tabTitle').textContent = titles[tab] || tab;
+
+    if (tab === 'analytics') loadAnalytics();
+    if (tab === 'maintenance') loadMaintenance();
+    if (tab === 'lines') loadLines();
+    if (tab === 'roi') updateROI();
+  });
+});
+
+// ============================================================
+// CLOCK
+// ============================================================
+function updateClock() {
+  const now = new Date();
+  document.getElementById('clock').textContent = now.toISOString().replace('T', '  ').slice(0, 21) + ' UTC';
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// ============================================================
+// TOAST
+// ============================================================
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// ============================================================
+// MODALS
+// ============================================================
+function openModal(id) {
+  document.getElementById(id).classList.add('show');
+  if (id === 'maintenanceModal') populateLineSelect('maintLineSelect');
+}
+function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+
+// ============================================================
+// DASHBOARD
+// ============================================================
+async function refreshDashboard() {
+  const data = await apiFetch('/api/v1/dashboard');
+  if (data) {
+    renderDashboardFromAPI(data);
+    return;
+  }
+  renderDashboardFromSeed();
+}
+
+function renderDashboardFromSeed() {
+  const ins = seedData.inspections;
+  const totalDefects = ins.reduce((s, i) => s + i.detections.length, 0);
+  const failCount = ins.filter(i => i.pass_fail === 'FAIL').length;
+
+  const defEl = document.getElementById('dashDefects');
+  defEl.textContent = totalDefects;
+  defEl.className = totalDefects > 10 ? 'stat-value red-val' : 'stat-value';
+
+  document.getElementById('dashRate').textContent = ins.length;
+  const avgConf = ins.flatMap(i => i.detections.map(d => d.confidence));
+  document.getElementById('dashAccuracy').textContent = avgConf.length ? (avgConf.reduce((a, b) => a + b, 0) / avgConf.length * 100).toFixed(1) + '%' : '99.2%';
+  const uptimeH = ((Date.now() - startTime) / 3600000 + 72).toFixed(1);
+  document.getElementById('dashUptime').textContent = uptimeH + 'h';
+
+  // Alerts from seed
+  const alerts = [];
+  ins.forEach(i => {
+    i.detections.filter(d => d.severity === 'critical' || d.severity === 'high').forEach(d => {
+      alerts.push({ id: Math.random().toString(36).slice(2, 10), timestamp: i.timestamp, line_id: i.line_id, defect_type: d.defect_type, severity: d.severity, confidence: d.confidence, acknowledged: false });
+    });
+  });
+  renderAlerts(alerts);
+  renderDonut(ins);
+}
+
+function renderDashboardFromAPI(data) {
+  let totalInsp = 0, totalDef = 0;
+  data.lines.forEach(l => {
+    totalInsp += l.analytics.total_inspections;
+    totalDef += l.analytics.fail_count;
+  });
+  const defEl = document.getElementById('dashDefects');
+  defEl.textContent = totalDef;
+  defEl.className = totalDef > 10 ? 'stat-value red-val' : 'stat-value';
+  document.getElementById('dashRate').textContent = totalInsp;
+  document.getElementById('dashAccuracy').textContent = '99.2%';
+  const uptimeH = ((Date.now() - startTime) / 3600000 + 72).toFixed(1);
+  document.getElementById('dashUptime').textContent = uptimeH + 'h';
+  renderAlerts(data.recent_alerts || []);
+}
+
+function renderAlerts(alerts) {
+  const unack = alerts.filter(a => !a.acknowledged);
+  document.getElementById('alertCount').textContent = unack.length;
+  const list = document.getElementById('alertList');
+  if (unack.length === 0) {
+    list.innerHTML = '<div style="text-align:center;padding:16px;color:var(--steel-lighter);font-size:12px">No active alerts</div>';
+    return;
+  }
+  list.innerHTML = unack.slice(-6).reverse().map(a => `
+    <div class="alert-item">
+      <span class="alert-sev ${a.severity}"></span>
+      <span><strong>${a.severity.toUpperCase()}</strong> &middot; ${a.defect_type} on ${a.line_id}</span>
+      <span class="alert-time">${new Date(a.timestamp).toLocaleTimeString()}</span>
+      <button class="alert-ack" onclick="ackAlert('${a.id}')">ACK</button>
+    </div>`).join('');
+}
+
+async function ackAlert(id) {
+  await apiFetch('/api/v1/alerts/acknowledge', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ alert_id: id }) });
+  showToast('Alert acknowledged');
+  refreshDashboard();
+}
+
+function renderDonut(inspections) {
+  const counts = {};
+  inspections.forEach(i => i.detections.forEach(d => { counts[d.defect_type] = (counts[d.defect_type] || 0) + 1; }));
+  const total = Object.values(counts).reduce((a, b) => a + b, 0);
+  document.getElementById('donutTotal').textContent = total;
+
+  if (total === 0) return;
+  const entries = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+  const r = 60, cx = 80, cy = 80, circ = 2 * Math.PI * r;
+  let offset = 0;
+  let arcs = `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="var(--border)" stroke-width="20"/>`;
+  entries.forEach(([type, count]) => {
+    const pct = count / total;
+    const len = pct * circ;
+    const color = DEFECT_COLORS[type] || '#6b7280';
+    arcs += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${color}" stroke-width="20" stroke-dasharray="${len} ${circ - len}" stroke-dashoffset="${-offset}"/>`;
+    offset += len;
+  });
+  document.querySelector('#donutChart svg').innerHTML = arcs;
+
+  document.getElementById('donutLegend').innerHTML = entries.map(([type, count]) => {
+    const color = DEFECT_COLORS[type] || '#6b7280';
+    return `<div class="donut-legend-item"><span class="dot" style="background:${color}"></span>${type} (${count})</div>`;
+  }).join('');
+}
+
+// ============================================================
+// INSPECT
+// ============================================================
+const dropZone = document.getElementById('dropZone');
+const fileInput = document.getElementById('fileInput');
+
+dropZone.addEventListener('click', () => fileInput.click());
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+dropZone.addEventListener('drop', e => { e.preventDefault(); dropZone.classList.remove('dragover'); if (e.dataTransfer.files.length) handleInspectFile(e.dataTransfer.files[0]); });
+fileInput.addEventListener('change', e => { if (e.target.files.length) handleInspectFile(e.target.files[0]); });
+
+async function handleInspectFile(file) {
+  if (!file.type.startsWith('image/')) { showToast('Please upload an image file'); return; }
+
+  const lineId = document.getElementById('inspectLineSelect').value || 'line-1';
+
+  // Show image preview
+  const reader = new FileReader();
+  reader.onload = e => {
+    const area = document.getElementById('inspectImageArea');
+    area.innerHTML = `<img src="${e.target.result}" alt="Inspection image">`;
+    document.getElementById('inspectResult').style.display = 'block';
+  };
+  reader.readAsDataURL(file);
+
+  // Try API call
+  const formData = new FormData();
+  formData.append('file', file);
+  const key = getApiKey();
+  try {
+    const res = await fetch(`${API_BASE}/api/v1/inspect?line_id=${lineId}`, {
+      method: 'POST', headers: { 'X-API-Key': key }, body: formData
+    });
+    if (res.ok) {
+      const result = await res.json();
+      renderInspectResult(result);
+      loadInspectionHistory();
+      showToast('Inspection complete');
+      return;
+    }
+  } catch (e) { console.warn('API inspect failed:', e); }
+
+  // Fallback: generate mock result
+  const mockResult = generateMockInspection(lineId, file.name);
+  renderInspectResult(mockResult);
+  seedData.inspections.push(mockResult);
+  renderInspectionHistory();
+  showToast('Inspection complete (demo mode)');
+}
+
+function generateMockInspection(lineId, filename) {
+  const defectTypes = ['crack', 'scratch', 'dent', 'discoloration', 'porosity', 'misalignment'];
+  const severities = ['low', 'medium', 'high', 'critical'];
+  const numDefects = Math.random() < 0.3 ? 0 : Math.floor(Math.random() * 3) + 1;
+  const detections = [];
+  for (let i = 0; i < numDefects; i++) {
+    detections.push({
+      defect_type: defectTypes[Math.floor(Math.random() * defectTypes.length)],
+      confidence: +(0.7 + Math.random() * 0.28).toFixed(4),
+      severity: severities[Math.floor(Math.random() * severities.length)],
+      bbox: { x1: 50 + Math.random() * 200, y1: 30 + Math.random() * 150, x2: 300 + Math.random() * 200, y2: 250 + Math.random() * 150 }
+    });
+  }
+  return {
+    image_id: `${lineId}_${Date.now().toString(16).slice(-8)}`,
+    pass_fail: numDefects > 0 ? 'FAIL' : 'PASS',
+    detections, inference_time_ms: +(12 + Math.random() * 25).toFixed(1),
+    timestamp: new Date().toISOString(), line_id: lineId
+  };
+}
+
+function renderInspectResult(result) {
+  document.getElementById('inspectResult').style.display = 'block';
+  const badge = document.getElementById('resultBadge');
+  badge.textContent = result.pass_fail;
+  badge.className = `badge ${result.pass_fail === 'PASS' ? 'badge-pass' : 'badge-fail'}`;
+  document.getElementById('resultImageId').textContent = result.image_id;
+  document.getElementById('resultInference').textContent = (result.inference_time_ms || 0).toFixed(1) + ' ms';
+
+  // Bounding boxes
+  const area = document.getElementById('inspectImageArea');
+  area.querySelectorAll('.bbox').forEach(b => b.remove());
+  if (result.detections && result.detections.length > 0) {
+    document.getElementById('noDefects').style.display = 'none';
+    const areaRect = area.getBoundingClientRect();
+    result.detections.forEach(d => {
+      const bbox = d.bbox || {};
+      const pctX = ((bbox.x1 || 100) / 800 * 100);
+      const pctY = ((bbox.y1 || 100) / 600 * 100);
+      const pctW = (((bbox.x2 || 300) - (bbox.x1 || 100)) / 800 * 100);
+      const pctH = (((bbox.y2 || 300) - (bbox.y1 || 100)) / 600 * 100);
+      const type = d.defect_type || 'unknown';
+      const div = document.createElement('div');
+      div.className = `bbox ${type}`;
+      div.style.cssText = `left:${pctX}%;top:${pctY}%;width:${pctW}%;height:${pctH}%`;
+      div.innerHTML = `<span class="bbox-label">${type} ${(d.confidence * 100).toFixed(0)}%</span>`;
+      area.appendChild(div);
+    });
+
+    document.getElementById('defectDetails').innerHTML = result.detections.map(d => {
+      const color = DEFECT_COLORS[d.defect_type] || '#6b7280';
+      const bbox = d.bbox || {};
+      return `<div class="defect-detail">
+        <div class="dd-color" style="background:${color}"></div>
+        <div class="dd-info">
+          <div class="dd-type">${d.defect_type}</div>
+          <div class="dd-meta">${d.severity.toUpperCase()} &middot; ${(d.confidence * 100).toFixed(1)}% &middot; [${Math.round(bbox.x1 || 0)},${Math.round(bbox.y1 || 0)},${Math.round(bbox.x2 || 0)},${Math.round(bbox.y2 || 0)}]</div>
+          <div class="confidence-bar"><div class="fill" style="width:${d.confidence * 100}%;background:${color}"></div></div>
+        </div>
+      </div>`;
+    }).join('');
+  } else {
+    document.getElementById('noDefects').style.display = 'block';
+    document.getElementById('defectDetails').innerHTML = '';
+  }
+}
+
+async function loadInspectionHistory() {
+  const data = await apiFetch('/api/v1/inspections?limit=10');
+  if (data && data.results) {
+    renderInspectionHistoryData(data.results);
+    return;
+  }
+  renderInspectionHistory();
+}
+
+function renderInspectionHistory() {
+  renderInspectionHistoryData(seedData.inspections.slice(-10).reverse());
+}
+
+function renderInspectionHistoryData(items) {
+  const el = document.getElementById('inspectionHistory');
+  if (!items.length) { el.innerHTML = '<div style="text-align:center;color:var(--steel-lighter);font-size:12px;padding:20px">No inspections yet</div>'; return; }
+  el.innerHTML = items.map(i => `
+    <div class="history-item">
+      <span class="hi-id">${i.image_id}</span>
+      <span><span class="badge ${i.pass_fail === 'PASS' ? 'badge-pass' : 'badge-fail'}">${i.pass_fail}</span></span>
+      <span class="hi-defects">${i.detections.length} defect${i.detections.length !== 1 ? 's' : ''}: ${i.detections.map(d => d.defect_type).join(', ') || 'none'}</span>
+      <span class="hi-time">${new Date(i.timestamp).toLocaleTimeString()}</span>
+    </div>`).join('');
+}
+
+// ============================================================
+// ANALYTICS
+// ============================================================
+async function loadAnalytics() {
+  const lineId = document.getElementById('analyticsLineSelect').value || '';
+  const lastN = document.getElementById('analyticsRange').value || 100;
+  const qs = lineId ? `?line_id=${lineId}&last_n=${lastN}` : `?last_n=${lastN}`;
+  const data = await apiFetch(`/api/v1/analytics${qs}`);
+
+  if (data && data.total_inspections > 0) {
+    renderAnalyticsFromAPI(data);
+  } else {
+    renderAnalyticsFromSeed();
+  }
+}
+
+function renderAnalyticsFromSeed() {
+  const ins = seedData.inspections;
+  const total = ins.length;
+  const fails = ins.filter(i => i.pass_fail === 'FAIL').length;
+  const defectRate = total ? (fails / total) : 0;
+  const avgInf = total ? ins.reduce((s, i) => s + i.inference_time_ms, 0) / total : 0;
+
+  document.getElementById('anTotal').textContent = total;
+  document.getElementById('anPass').textContent = ((1 - defectRate) * 100).toFixed(1) + '%';
+  document.getElementById('anDefect').textContent = (defectRate * 100).toFixed(1) + '%';
+  document.getElementById('anInference').textContent = avgInf.toFixed(1) + 'ms';
+
+  // Defect types
+  const types = {};
+  ins.forEach(i => i.detections.forEach(d => { types[d.defect_type] = (types[d.defect_type] || 0) + 1; }));
+  renderBarChart('defectTypeChart', types, DEFECT_COLORS);
+
+  // Severity
+  const sevs = {};
+  ins.forEach(i => i.detections.forEach(d => { sevs[d.severity] = (sevs[d.severity] || 0) + 1; }));
+  renderBarChart('severityChart', sevs, SEVERITY_COLORS);
+
+  // Line chart
+  renderLineChart(ins);
+
+  // Shift analysis
+  const day = ins.filter(i => { const h = new Date(i.timestamp).getHours(); return h >= 6 && h < 18; });
+  const night = ins.filter(i => { const h = new Date(i.timestamp).getHours(); return h < 6 || h >= 18; });
+  const dayFail = day.filter(i => i.pass_fail === 'FAIL').length;
+  const nightFail = night.filter(i => i.pass_fail === 'FAIL').length;
+  document.getElementById('dayShiftRate').textContent = day.length ? (dayFail / day.length * 100).toFixed(1) + '%' : '0%';
+  document.getElementById('dayShiftCount').textContent = day.length + ' inspections';
+  document.getElementById('nightShiftRate').textContent = night.length ? (nightFail / night.length * 100).toFixed(1) + '%' : '0%';
+  document.getElementById('nightShiftCount').textContent = night.length + ' inspections';
+}
+
+function renderAnalyticsFromAPI(data) {
+  document.getElementById('anTotal').textContent = data.total_inspections;
+  document.getElementById('anPass').textContent = ((1 - data.defect_rate) * 100).toFixed(1) + '%';
+  document.getElementById('anDefect').textContent = (data.defect_rate * 100).toFixed(1) + '%';
+  document.getElementById('anInference').textContent = data.avg_inference_ms.toFixed(1) + 'ms';
+
+  renderBarChart('defectTypeChart', data.defects_by_type || {}, DEFECT_COLORS);
+  renderBarChart('severityChart', data.severity_distribution || {}, SEVERITY_COLORS);
+
+  // Shift analysis with seed data fallback
+  const ins = seedData.inspections;
+  const day = ins.filter(i => { const h = new Date(i.timestamp).getHours(); return h >= 6 && h < 18; });
+  const night = ins.filter(i => { const h = new Date(i.timestamp).getHours(); return h < 6 || h >= 18; });
+  const dayFail = day.filter(i => i.pass_fail === 'FAIL').length;
+  const nightFail = night.filter(i => i.pass_fail === 'FAIL').length;
+  document.getElementById('dayShiftRate').textContent = day.length ? (dayFail / day.length * 100).toFixed(1) + '%' : '0%';
+  document.getElementById('dayShiftCount').textContent = day.length + ' inspections';
+  document.getElementById('nightShiftRate').textContent = night.length ? (nightFail / night.length * 100).toFixed(1) + '%' : '0%';
+  document.getElementById('nightShiftCount').textContent = night.length + ' inspections';
+
+  renderLineChart(seedData.inspections);
+}
+
+function renderBarChart(containerId, dataObj, colorMap) {
+  const el = document.getElementById(containerId);
+  const entries = Object.entries(dataObj);
+  if (!entries.length) { el.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--steel-lighter);font-size:12px">No data available</div>'; return; }
+  const maxVal = Math.max(...entries.map(e => e[1]), 1);
+  el.innerHTML = entries.map(([label, val]) => {
+    const h = Math.max(2, (val / maxVal) * 150);
+    const color = colorMap[label] || '#6b7280';
+    return `<div class="bar-col">
+      <div class="bar-val">${val}</div>
+      <div class="bar" style="height:${h}px;background:${color}"></div>
+      <div class="bar-label">${label}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderLineChart(inspections) {
+  const el = document.getElementById('defectRateChart');
+  if (inspections.length < 2) { el.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--steel-lighter);font-size:12px">Need more data</div>'; return; }
+
+  // Group into buckets
+  const sorted = [...inspections].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+  const bucketSize = Math.max(1, Math.floor(sorted.length / 8));
+  const points = [];
+  for (let i = 0; i < sorted.length; i += bucketSize) {
+    const bucket = sorted.slice(i, i + bucketSize);
+    const fails = bucket.filter(b => b.pass_fail === 'FAIL').length;
+    points.push({ rate: bucket.length ? fails / bucket.length : 0, label: new Date(bucket[0].timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) });
+  }
+
+  const w = 600, h = 180, pad = 40, padR = 20, padB = 30;
+  const maxRate = Math.max(0.1, ...points.map(p => p.rate));
+  const xStep = points.length > 1 ? (w - pad - padR) / (points.length - 1) : 0;
+
+  let pathD = '', areaD = '', dots = '', xLabels = '';
+  points.forEach((p, i) => {
+    const x = pad + i * xStep;
+    const y = h - padB - ((p.rate / maxRate) * (h - pad - padB));
+    if (i === 0) { pathD = `M${x},${y}`; areaD = `M${x},${h - padB} L${x},${y}`; }
+    else { pathD += ` L${x},${y}`; areaD += ` L${x},${y}`; }
+    dots += `<circle cx="${x}" cy="${y}" r="3" class="data-dot"/>`;
+    if (i % 2 === 0 || i === points.length - 1) xLabels += `<text x="${x}" y="${h - 5}" class="x-label">${p.label}</text>`;
+  });
+  areaD += ` L${pad + (points.length - 1) * xStep},${h - padB} Z`;
+
+  let gridLines = '';
+  for (let i = 0; i <= 4; i++) {
+    const y = h - padB - (i / 4) * (h - pad - padB);
+    const val = (maxRate * i / 4 * 100).toFixed(0) + '%';
+    gridLines += `<line x1="${pad}" y1="${y}" x2="${w - padR}" y2="${y}" class="grid-line" stroke-dasharray="4,4"/>`;
+    gridLines += `<text x="${pad - 6}" y="${y + 4}" class="y-label" text-anchor="end">${val}</text>`;
+  }
+
+  el.innerHTML = `<svg viewBox="0 0 ${w} ${h}">
+    <defs><linearGradient id="blueGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#3b82f6" stop-opacity="0.3"/><stop offset="100%" stop-color="#3b82f6" stop-opacity="0"/></linearGradient></defs>
+    ${gridLines}<path d="${areaD}" class="data-area"/><path d="${pathD}" class="data-line"/>${dots}${xLabels}</svg>`;
+}
+
+document.getElementById('analyticsLineSelect').addEventListener('change', loadAnalytics);
+document.getElementById('analyticsRange').addEventListener('change', loadAnalytics);
+
+// ============================================================
+// MAINTENANCE
+// ============================================================
+async function loadMaintenance() {
+  const lines = seedData.lines;
+  const healthCards = document.getElementById('healthCards');
+
+  // Try API first
+  let healthData = [];
+  for (const line of lines) {
+    const pred = await apiFetch(`/api/v1/maintenance/predict/${line.id}`);
+    if (pred) healthData.push(pred);
+  }
+
+  if (healthData.length === 0) {
+    // Seed fallback
+    healthData = lines.map(l => ({
+      line_id: l.id, health_score: 0.7 + Math.random() * 0.25, defect_rate: l.total_defects / Math.max(1, l.total_inspections),
+      trend: Math.random() > 0.5 ? 'stable' : 'degrading', recommendation: 'Plan maintenance in next cycle', priority: 'medium', sample_size: l.total_inspections
+    }));
+  }
+
+  healthCards.innerHTML = healthData.map(h => {
+    const line = lines.find(l => l.id === h.line_id) || { name: h.line_id };
+    const score = h.health_score;
+    const colorClass = score >= 0.7 ? 'health-green' : score >= 0.4 ? 'health-orange' : 'health-red';
+    const statusClass = score >= 0.7 ? 'status-active' : score >= 0.4 ? 'status-warning' : 'status-critical';
+    return `<div class="card">
+      <div class="card-header"><h3>${line.name}</h3><span class="status ${statusClass}">${h.trend}</span></div>
+      <div class="card-body">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+          <div style="font-size:28px;font-weight:700;color:var(--steel)">${(score * 100).toFixed(0)}%</div>
+          <div class="health-bar"><div class="fill ${colorClass}" style="width:${score * 100}%"></div></div>
+        </div>
+        <div style="font-size:12px;color:var(--steel-light);margin-bottom:8px">${h.recommendation}</div>
+        <div style="font-size:11px;color:var(--steel-lighter)">Defect rate: ${(h.defect_rate * 100).toFixed(2)}% &middot; Samples: ${h.sample_size}</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Predictions with countdown
+  const predEl = document.getElementById('maintenancePredictions');
+  const now = new Date();
+  predEl.innerHTML = healthData.map(h => {
+    const line = lines.find(l => l.id === h.line_id) || { name: h.line_id };
+    const daysUntil = h.health_score >= 0.8 ? 14 : h.health_score >= 0.6 ? 5 : 1;
+    const nextDate = new Date(now.getTime() + daysUntil * 86400000);
+    const hoursUntil = Math.floor((nextDate - now) / 3600000);
+    const days = Math.floor(hoursUntil / 24);
+    const hours = hoursUntil % 24;
+    return `<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border)">
+      <div><div style="font-weight:600;font-size:13px">${line.name}</div><div style="font-size:11px;color:var(--steel-lighter);margin-top:2px">Priority: <span class="badge badge-${h.priority}">${h.priority}</span></div></div>
+      <div class="countdown">${days}<span class="cd-unit">d</span> ${hours}<span class="cd-unit">h</span></div>
+    </div>`;
+  }).join('');
+
+  // Schedule
+  const sched = await apiFetch('/api/v1/maintenance/schedule');
+  const tasks = (sched && sched.schedule) || seedData.maintenance;
+  const schedTable = document.getElementById('scheduleTable');
+  if (tasks.length === 0) {
+    schedTable.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--steel-lighter)">No scheduled tasks</td></tr>';
+  } else {
+    schedTable.innerHTML = tasks.map(t => {
+      const line = lines.find(l => l.id === t.line_id) || { name: t.line_id };
+      return `<tr>
+        <td style="font-family:var(--mono);font-size:12px">${t.scheduled_date}</td>
+        <td>${line.name}</td>
+        <td>${t.description}</td>
+        <td><span class="badge badge-${t.priority}">${t.priority}</span></td>
+        <td><span class="badge badge-info">${t.status}</span></td>
+      </tr>`;
+    }).join('');
+  }
+
+  // History log
+  const histTable = document.getElementById('maintenanceHistoryTable');
+  const hist = seedData.maintenanceHistory || [];
+  histTable.innerHTML = hist.map(h => {
+    const line = lines.find(l => l.id === h.line_id) || { name: h.line_id };
+    return `<tr>
+      <td style="font-family:var(--mono);font-size:11px">${new Date(h.timestamp).toLocaleString()}</td>
+      <td>${line.name}</td>
+      <td>${h.action}</td>
+      <td><div class="health-bar" style="width:80px;display:inline-block"><div class="fill ${h.healthBefore >= 0.7 ? 'health-green' : 'health-orange'}" style="width:${h.healthBefore * 100}%"></div></div> ${(h.healthBefore * 100).toFixed(0)}%</td>
+      <td><div class="health-bar" style="width:80px;display:inline-block"><div class="fill health-green" style="width:${h.healthAfter * 100}%"></div></div> ${(h.healthAfter * 100).toFixed(0)}%</td>
+    </tr>`;
+  }).join('');
+}
+
+async function createMaintenanceTask() {
+  const lineId = document.getElementById('maintLineSelect').value;
+  const date = document.getElementById('maintDateInput').value;
+  const desc = document.getElementById('maintDescInput').value;
+  const priority = document.getElementById('maintPriorityInput').value;
+  if (!lineId || !date || !desc) { showToast('Please fill all fields'); return; }
+
+  const body = { line_id: lineId, scheduled_date: date, description: desc, priority };
+  const res = await apiFetch('/api/v1/maintenance/schedule', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  if (res) {
+    showToast('Maintenance task scheduled');
+  } else {
+    seedData.maintenance.push({ id: 'mt-' + Date.now(), ...body, status: 'scheduled', created_at: new Date().toISOString() });
+    showToast('Task scheduled (demo mode)');
+  }
+  closeModal('maintenanceModal');
+  loadMaintenance();
+}
+
+// ============================================================
+// FACTORY LINES
+// ============================================================
+async function loadLines() {
+  const data = await apiFetch('/api/v1/lines');
+  const lines = (data && data.lines) || seedData.lines;
+  renderLinesTable(lines);
+  document.getElementById('lineCount').textContent = lines.length;
+}
+
+function renderLinesTable(lines) {
+  const el = document.getElementById('linesTable');
+  el.innerHTML = lines.map(l => {
+    const cameras = l.cameras || 2;
+    const rate = l.total_inspections ? (l.total_defects / l.total_inspections * 100).toFixed(2) : '0.00';
+    return `<tr>
+      <td style="font-weight:600">${l.name}</td>
+      <td style="font-family:var(--mono);font-size:12px">${l.id}</td>
+      <td>${cameras}</td>
+      <td><span class="status ${l.active ? 'status-active' : 'status-inactive'}">${l.active ? 'Active' : 'Inactive'}</span></td>
+      <td>${l.total_inspections.toLocaleString()}</td>
+      <td>${l.total_defects}</td>
+      <td>${rate}%</td>
+      <td>
+        <button class="btn btn-secondary btn-sm" onclick="viewLineDetail('${l.id}')" style="margin-right:4px">View</button>
+        <button class="btn btn-secondary btn-sm" onclick="openEditLine('${l.id}')">Edit</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function viewLineDetail(lineId) {
+  const line = seedData.lines.find(l => l.id === lineId);
+  if (!line) return;
+  document.getElementById('lineDetail').style.display = 'block';
+  document.getElementById('lineDetailTitle').textContent = line.name;
+  document.getElementById('ldId').textContent = line.id;
+  document.getElementById('ldCreated').textContent = new Date(line.created_at).toLocaleString();
+  document.getElementById('ldCamera').textContent = line.camera_url || 'Not configured';
+  document.getElementById('ldInspections').textContent = line.total_inspections.toLocaleString();
+  document.getElementById('ldDefects').textContent = line.total_defects;
+  document.getElementById('ldRate').textContent = line.total_inspections ? (line.total_defects / line.total_inspections * 100).toFixed(2) + '%' : '0%';
+}
+
+function openEditLine(lineId) {
+  const line = seedData.lines.find(l => l.id === lineId);
+  if (!line) return;
+  document.getElementById('editLineId').value = lineId;
+  document.getElementById('editLineName').value = line.name;
+  document.getElementById('editLineCameraUrl').value = line.camera_url || '';
+  document.getElementById('editLineActive').value = line.active ? 'true' : 'false';
+  openModal('editLineModal');
+}
+
+async function updateLine() {
+  const lineId = document.getElementById('editLineId').value;
+  const body = {
+    name: document.getElementById('editLineName').value || undefined,
+    camera_url: document.getElementById('editLineCameraUrl').value || undefined,
+    active: document.getElementById('editLineActive').value === 'true'
+  };
+  const res = await apiFetch(`/api/v1/lines/${lineId}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  if (res) {
+    showToast('Line updated');
+  } else {
+    const line = seedData.lines.find(l => l.id === lineId);
+    if (line) { Object.assign(line, body); }
+    showToast('Line updated (demo mode)');
+  }
+  closeModal('editLineModal');
+  loadLines();
+}
+
+async function createLine() {
+  const name = document.getElementById('lineNameInput').value;
+  const cameraUrl = document.getElementById('lineCameraInput').value || null;
+  if (!name) { showToast('Please enter a line name'); return; }
+
+  const res = await apiFetch('/api/v1/lines', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, camera_url: cameraUrl }) });
+  if (res) {
+    seedData.lines.push(res);
+    showToast('Factory line created');
+  } else {
+    const newLine = { id: 'line-' + Date.now().toString(36), name, camera_url: cameraUrl, active: true, created_at: new Date().toISOString(), total_inspections: 0, total_defects: 0, cameras: 1 };
+    seedData.lines.push(newLine);
+    showToast('Line created (demo mode)');
+  }
+  document.getElementById('lineNameInput').value = '';
+  document.getElementById('lineCameraInput').value = '';
+  closeModal('lineModal');
+  loadLines();
+  populateAllLineSelects();
+}
+
+// ============================================================
+// ROI CALCULATOR
+// ============================================================
+function updateROI() {
+  const units = parseInt(document.getElementById('roiUnits').value);
+  const defRate = parseFloat(document.getElementById('roiDefRate').value) / 100;
+  const defRateAfter = parseFloat(document.getElementById('roiDefRateAfter').value) / 100;
+  const cost = parseFloat(document.getElementById('roiCost').value);
+  const sysCost = parseFloat(document.getElementById('roiSysCost').value);
+  const inspectors = parseInt(document.getElementById('roiInspectors').value);
+
+  document.getElementById('roiUnitsVal').textContent = units.toLocaleString();
+  document.getElementById('roiDefRateVal').textContent = (defRate * 100).toFixed(1) + '%';
+  document.getElementById('roiDefRateAfterVal').textContent = (defRateAfter * 100).toFixed(1) + '%';
+  document.getElementById('roiCostVal').textContent = '$' + cost.toLocaleString();
+  document.getElementById('roiSysCostVal').textContent = '$' + sysCost.toLocaleString();
+  document.getElementById('roiInspectorsVal').textContent = inspectors;
+
+  const yearlyUnits = units * 365;
+  const defectsBefore = yearlyUnits * defRate;
+  const defectsAfter = yearlyUnits * defRateAfter;
+  const defectsPrevented = defectsBefore - defectsAfter;
+  const laborSavings = inspectors * 55000; // avg inspector salary
+  const annualSavings = defectsPrevented * cost + laborSavings;
+  const paybackDays = annualSavings > 0 ? sysCost / (annualSavings / 365) : Infinity;
+  const threeYearROI = ((annualSavings * 3 - sysCost) / sysCost * 100);
+
+  document.getElementById('roiSavings').textContent = '$' + Math.round(annualSavings).toLocaleString();
+  document.getElementById('roiPayback').textContent = paybackDays === Infinity ? '--' : Math.round(paybackDays);
+  document.getElementById('roi3yr').textContent = threeYearROI.toFixed(0) + '%';
+  document.getElementById('roiPrevented').textContent = Math.round(defectsPrevented).toLocaleString();
+
+  // 3-year projection
+  const proj = document.getElementById('yearProjection');
+  const years = [1, 2, 3];
+  const maxSaving = annualSavings * 3;
+  proj.innerHTML = years.map(y => {
+    const cumSavings = annualSavings * y;
+    const cumCost = sysCost;
+    const net = cumSavings - cumCost;
+    const savH = Math.max(4, (cumSavings / maxSaving) * 140);
+    const costH = Math.max(4, (cumCost / maxSaving) * 140);
+    return `<div style="text-align:center">
+      <div style="font-size:11px;color:var(--steel-lighter);margin-bottom:8px">Year ${y}</div>
+      <div class="year-bar-group" style="height:150px;align-items:flex-end">
+        <div class="year-bar" style="height:${savH}px;background:var(--green);width:28px" title="Savings: $${Math.round(cumSavings).toLocaleString()}"></div>
+        <div class="year-bar" style="height:${costH}px;background:var(--red);width:28px;opacity:.6" title="Cost: $${Math.round(cumCost).toLocaleString()}"></div>
+      </div>
+      <div style="font-size:12px;font-weight:700;margin-top:8px;color:${net >= 0 ? 'var(--green)' : 'var(--red)'}">
+        ${net >= 0 ? '+' : ''}$${Math.round(net / 1000)}k
+      </div>
+      <div style="display:flex;gap:8px;justify-content:center;margin-top:4px">
+        <span style="font-size:9px;color:var(--green)">&#9632; Savings</span>
+        <span style="font-size:9px;color:var(--red)">&#9632; Cost</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ============================================================
+// LINE SELECT HELPERS
+// ============================================================
+function populateLineSelect(selectId) {
+  const el = document.getElementById(selectId);
+  if (!el) return;
+  el.innerHTML = seedData.lines.map(l => `<option value="${l.id}">${l.name}</option>`).join('');
+}
+
+function populateAllLineSelects() {
+  const opts = '<option value="">All Lines</option>' + seedData.lines.map(l => `<option value="${l.id}">${l.name}</option>`).join('');
+  ['inspectLineSelect', 'analyticsLineSelect'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = opts;
+  });
+}
+
+// ============================================================
+// INIT
+// ============================================================
+function init() {
+  generateSeedData();
+  populateAllLineSelects();
+  refreshDashboard();
+  renderInspectionHistory();
+  updateROI();
+}
+
+init();
+</script>
+</body>
+</html>
